@@ -29,6 +29,7 @@ button:disabled{opacity:.5}
 .card .t{position:absolute;right:18px;bottom:18px;font-weight:700;font-size:.85rem}
 .bal{text-align:center;margin:22px 0 4px;font-size:2.6rem;font-weight:600;font-family:Georgia,serif;color:var(--accent)}
 .lbl{text-align:center;color:var(--mute);font-size:.8rem;letter-spacing:3px;text-transform:uppercase}
+.frz{display:none;background:rgba(224,137,122,.12);border:1px solid #5a2f28;color:#e0a89c;border-radius:12px;padding:12px;margin-bottom:14px;text-align:center;font-size:.9rem}
 .out{background:transparent;border:1px solid var(--line);color:var(--mute);margin-top:18px}
 </style>
 </head>
@@ -44,6 +45,7 @@ button:disabled{opacity:.5}
     <div class="err" id="err"></div>
   </div>
   <div class="acct" id="acct">
+    <div class="frz" id="frz">This account is frozen. Transactions are on hold. Please contact your banker.</div>
     <div class="card" id="card"><div class="b">BLACK BANK</div><div class="n" id="cn"></div><div class="h" id="ch"></div><div class="t" id="ct"></div></div>
     <div class="bal" id="bal">£0.00</div><div class="lbl">Available balance</div>
     <button class="out" id="out">Sign out</button>
@@ -70,6 +72,9 @@ async function open(){
       if(first){fails++;if(fails>=3){lockUntil=Date.now()+30000;fails=0}$("err").textContent="Account number or PIN is incorrect.";$("go").disabled=false;if(unsub)unsub();unsub=null}
       else close();return}
     const d=s.data();
+    const st=d.status||"active";
+    if(st==="locked"||st==="closed"){close();$("err").textContent=st==="closed"?"This account has been closed.":"This account is locked. Please contact your banker.";return}
+    $("frz").style.display=st==="frozen"?"block":"none";
     if(first){first=false;fails=0;$("form").style.display="none";$("acct").style.display="block";
       $("card").dataset.tier=d.tier.toLowerCase().replace(/\s/g,"");$("cn").textContent="•••• "+d.acct.slice(-4);
       $("ch").textContent=d.name.toUpperCase();$("ct").textContent=d.tier;shown=0}
