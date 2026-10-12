@@ -70,7 +70,7 @@ async function open(){
   unsub=onSnapshot(doc(db,"accounts",key),s=>{
     if(!s.exists()){
       if(first){fails++;if(fails>=3){lockUntil=Date.now()+30000;fails=0}$("err").textContent="Account number or PIN is incorrect.";$("go").disabled=false;if(unsub)unsub();unsub=null}
-      else close();return}
+      else{close();$("err").textContent="This account has been closed."}return}
     const d=s.data();
     const st=d.status||"active";
     if(st==="locked"||st==="closed"){close();$("err").textContent=st==="closed"?"This account has been closed.":"This account is locked. Please contact your banker.";return}

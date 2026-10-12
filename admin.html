@@ -59,13 +59,20 @@ button.danger{background:transparent;color:#c0392b;border:1px solid var(--line)}
   <main>
     <div class="tabs" id="tabs"></div>
     <div class="panel" id="list"></div>
+    <h2 style="margin:22px 0 0;font-size:1.1rem">Bank funds</h2>
+    <div class="panel">
+      <strong id="funds" style="font-size:1.8rem;color:var(--accent)">£0.00</strong>
+      <div class="meta">Monthly and withdrawal fees go in. Interest comes out.</div>
+      <div class="actions"><input id="fa" type="number" min="0" step="0.01" placeholder="Amount £" style="width:130px;margin:0"><button id="fadd">Add funds</button><button class="ghost" id="frem">Remove funds</button></div>
+      <div class="actions" style="margin-top:16px"><button id="feeAll">Take Monthly Fee (all)</button><button class="ghost" id="intAll">Add Interest (all)</button></div>
+    </div>
     <h2 style="margin:22px 0 0;font-size:1.1rem">Accounts</h2>
     <div class="panel"><input id="q" placeholder="Search by name or account number" autocomplete="off" style="margin:0 0 6px"><div id="accts"></div></div>
   </main>
 </div>
 
 <script type="module">
-import { db, auth, configured, doc, setDoc, increment, updateDoc, deleteDoc, accountKey, fmtAcct, money, onSnapshot, collection, query, orderBy,
+import { db, auth, configured, doc, setDoc, increment, writeBatch, updateDoc, deleteDoc, accountKey, fmtAcct, money, onSnapshot, collection, query, orderBy,
          signInWithEmailAndPassword, onAuthStateChanged, signOut } from "./firebase-init.js";
 
 const $=id=>document.getElementById(id);
@@ -155,9 +162,66 @@ async function deliver(o){
 function adjust(a,sign,input){
   const p=Math.round(parseFloat(input.value)*100);
   if(!(p>0))return;
-  if(sign<0&&p>a.balance){alert("Not enough funds.");return}
-  updateDoc(doc(db,"accounts",a.id),{balance:increment(sign*p)}).then(()=>{input.value=""}).catch(()=>alert("Couldn't update the balance."));
+  const fee=sign<0?Math.round(p*((TIERS[a.tier]||{}).wd||0)):0,total=p+fee;
+  if(sign<0&&total>a.balance){alert("Not enough funds"+(fee?" (a "+money(fee)+" withdrawal fee applies).":"."));return}
+  if(fee&&!confirm("Withdraw "+money(p)+"? "+a.tier+" withdrawal fee: "+money(fee)+". The account is debited "+money(total)+"."))return;
+  const b=writeBatch(db);
+  b.update(doc(db,"accounts",a.id),{balance:increment(sign*total)});
+  if(fee)b.set(fundsRef(),{balance:increment(fee)},{merge:true});
+  b.commit().then(()=>{input.value=""}).catch(()=>alert("Couldn't update the balance."));
 }
+/* ---------- bank funds, fees, interest ---------- */
+const TIERS={"Silver":{fee:0,int:0,wd:0.05},"Silver Max":{fee:250,int:0.02,wd:0.025},"Gold":{fee:600,int:0.02,wd:0},"Black":{fee:1000,int:0.03,wd:0}};
+let funds=0,unsubF=null;
+const mk=()=>new Date().toISOString().slice(0,7);
+const fundsRef=()=>doc(db,"bank","funds");
+function listenFunds(){
+  if(unsubF)unsubF();
+  unsubF=onSnapshot(fundsRef(),s=>{funds=s.exists()?(s.data().balance||0):0;$("funds").textContent=money(funds)},()=>{});
+}
+function adjustFunds(sign){
+  const p=Math.round(parseFloat($("fa").value)*100);
+  if(!(p>0))return;
+  if(sign<0&&p>funds){alert("The bank doesn't have that much.");return}
+  setDoc(fundsRef(),{balance:increment(sign*p)},{merge:true}).then(()=>{$("fa").value=""}).catch(()=>alert("Couldn't update bank funds."));
+}
+async function takeFee(list){
+  const m=mk(),single=list!==accts;let force=false;
+  if(single&&list[0].feeMonth===m){if(!confirm("This account was already charged this month. Charge again?"))return;force=true}
+  if(!single&&!confirm("Take the monthly fee from every active account?"))return;
+  const b=writeBatch(db);let total=0,n=0,done=0,broke=0;
+  list.forEach(a=>{
+    const fee=(TIERS[a.tier]||{}).fee||0;
+    if(!fee||(a.status||"active")!=="active")return;
+    if(a.feeMonth===m&&!force){done++;return}
+    if(a.balance<fee){broke++;return}
+    b.update(doc(db,"accounts",a.id),{balance:increment(-fee),feeMonth:m});total+=fee;n++;
+  });
+  if(n){b.set(fundsRef(),{balance:increment(total)},{merge:true});try{await b.commit()}catch(e){return alert("Couldn't take the fees.")}}
+  alert((n?"Took "+money(total)+" from "+n+" account(s).":"Nothing to take.")+(done?" "+done+" already charged this month.":"")+(broke?" "+broke+" couldn't afford it.":""));
+}
+async function addInterest(list){
+  const m=mk(),single=list!==accts;let force=false;
+  if(single&&list[0].intMonth===m){if(!confirm("Interest was already added to this account this month. Add again?"))return;force=true}
+  if(!single&&!confirm("Pay interest to every active account out of bank funds?"))return;
+  const b=writeBatch(db);let total=0,n=0,done=0,short=0;
+  list.forEach(a=>{
+    const amt=Math.round(a.balance*((TIERS[a.tier]||{}).int||0));
+    if(amt<=0||(a.status||"active")!=="active")return;
+    if(a.intMonth===m&&!force){done++;return}
+    if(total+amt>funds){short++;return}
+    b.update(doc(db,"accounts",a.id),{balance:increment(amt),intMonth:m});total+=amt;n++;
+  });
+  if(n){b.set(fundsRef(),{balance:increment(-total)},{merge:true});try{await b.commit()}catch(e){return alert("Couldn't add interest.")}}
+  alert((n?"Paid "+money(total)+" to "+n+" account(s).":"Nothing to pay.")+(done?" "+done+" already paid this month.":"")+(short?" "+short+" skipped: not enough bank funds.":""));
+}
+function closeAcct(a){
+  if(!confirm("Close "+a.name+"'s account? "+(a.balance>0?"Its "+money(a.balance)+" balance should be paid out first. ":"")+"This permanently deletes it."))return;
+  deleteDoc(doc(db,"accounts",a.id)).catch(()=>alert("Couldn't close the account."));
+}
+$("fadd").onclick=()=>adjustFunds(1);$("frem").onclick=()=>adjustFunds(-1);
+$("feeAll").onclick=()=>takeFee(accts);$("intAll").onclick=()=>addInterest(accts);
+
 function setAcctStatus(a,s){
   if(s==="closed"&&!confirm("Close this account?")){drawAccts();return}
   updateDoc(doc(db,"accounts",a.id),{status:s}).catch(()=>alert("Couldn't change the status."));
@@ -199,10 +263,16 @@ function drawAccts(){
     ac.append(i,d,w);el.appendChild(ac);
     const a2=document.createElement("div");a2.className="actions";
     const sel=document.createElement("select");sel.style.cssText="font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px";
-    [["active","Active"],["frozen","Frozen"],["locked","Locked"],["closed","Closed"]].forEach(([v,l])=>{const op=document.createElement("option");op.value=v;op.textContent=l;if(v===(a.status||"active"))op.selected=true;sel.appendChild(op)});
+    [["active","Active"],["frozen","Frozen"],["locked","Locked"]].forEach(([v,l])=>{const op=document.createElement("option");op.value=v;op.textContent=l;if(v===(a.status||"active"))op.selected=true;sel.appendChild(op)});
     sel.onchange=()=>setAcctStatus(a,sel.value);
     const nb=document.createElement("button");nb.className="ghost";nb.textContent="Change number";nb.onclick=()=>renumber(a);
-    a2.append(sel,nb);el.appendChild(a2);box.appendChild(el);
+    const cl=document.createElement("button");cl.className="danger";cl.textContent="Close account";cl.onclick=()=>closeAcct(a);
+    a2.append(sel,nb,cl);
+    const a3=document.createElement("div");a3.className="actions";
+    const fb=document.createElement("button");fb.textContent="Take Monthly Fee";fb.onclick=()=>takeFee([a]);
+    const ib=document.createElement("button");ib.className="ghost";ib.textContent="Add Interest";ib.onclick=()=>addInterest([a]);
+    fb.disabled=ib.disabled=!live;a3.append(fb,ib);
+    el.append(a3,a2);box.appendChild(el);
   });
 }
 $("q").oninput=drawAccts;
@@ -239,8 +309,8 @@ function listen(){
 }
 
 /* ---------- login ---------- */
-function showApp(){$("loginView").hidden=true;$("appView").hidden=false;listen();listenAccts()}
-function showLogin(){if(unsub){unsub();unsub=null}if(unsubA){unsubA();unsubA=null}$("appView").hidden=true;$("loginView").hidden=false}
+function showApp(){$("loginView").hidden=true;$("appView").hidden=false;listen();listenAccts();listenFunds()}
+function showLogin(){if(unsub){unsub();unsub=null}if(unsubA){unsubA();unsubA=null}if(unsubF){unsubF();unsubF=null}$("appView").hidden=true;$("loginView").hidden=false}
 async function login(){
   $("err").textContent="";
   try{await signInWithEmailAndPassword(auth,$("em").value.trim(),$("pw").value);$("pw").value=""}

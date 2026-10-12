@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, increment, collection, query, orderBy }
+import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, increment, writeBatch, collection, query, orderBy }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -9,7 +9,7 @@ export const configured = !String(firebaseConfig.apiKey).startsWith("PASTE");
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
-export { doc, setDoc, updateDoc, deleteDoc, onSnapshot, increment, collection, query, orderBy,
+export { doc, setDoc, updateDoc, deleteDoc, onSnapshot, increment, writeBatch, collection, query, orderBy,
          signInWithEmailAndPassword, onAuthStateChanged, signOut };
 
 // Account helpers: an account's document id is a hash of (number + PIN), so a PIN
