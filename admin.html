@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Banker | Home Bank</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--ink:#14213d;--mute:#5b6784;--line:#dde3f0;--accent:#1f4fd8;--accent-ink:#fff;--ok:#1a7f4b;--warn:#b26a00}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1424;--card:#172038;--ink:#eef2ff;--mute:#9aa6c7;--line:#27325a;--accent:#5b86ff;--accent-ink:#0b1020;--ok:#4cc38a;--warn:#f0b04a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.45}
+header,main{max-width:760px;margin:0 auto;padding:16px}
+header{padding-top:24px;padding-bottom:0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+h1{margin:0;font-size:1.5rem}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
+input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;margin-top:10px}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:9px 14px;background:var(--accent);color:var(--accent-ink);font-weight:600}
+button.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+button.danger{background:transparent;color:#c0392b;border:1px solid var(--line)}
+.tabs{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.tabs button{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.tabs button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.order{border-top:1px solid var(--line);padding:12px 0}
+.order:first-child{border-top:0}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.meta{color:var(--mute);font-size:.88rem;margin-top:2px}
+.pill{font-size:.75rem;padding:3px 9px;border-radius:99px;border:1px solid var(--line);white-space:nowrap}
+.s-ordered{color:var(--warn)}.s-preparing{color:var(--accent)}.s-delivered{color:var(--ok)}
+.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.new{animation:flash 1.6s ease-out}
+@keyframes flash{from{background:rgba(91,134,255,.35)}to{background:transparent}}
+.err{color:#c0392b;font-size:.9rem;margin-top:8px;min-height:1.2em}
+.empty,.live{color:var(--mute);font-size:.9rem}
+</style>
+</head>
+<body>
+<div id="loginView" hidden>
+  <main style="max-width:420px">
+    <h1>🏦 Banker login</h1>
+    <div class="panel">
+      <input id="em" type="email" placeholder="Banker email" autocomplete="username">
+      <input id="pw" type="password" placeholder="Password" autocomplete="current-password">
+      <div style="margin-top:12px"><button id="go" style="width:100%">Log in</button></div>
+      <div class="err" id="err"></div>
+    </div>
+  </main>
+</div>
+
+<div id="appView" hidden>
+  <header>
+    <h1>🏦 Incoming orders</h1>
+    <div>
+      <span class="live" id="live">connecting…</span>
+      <button class="ghost" id="snd">🔔 Sound off</button>
+      <button class="ghost" id="ntf">Enable alerts</button>
+      <button class="ghost" id="out">Log out</button>
+    </div>
+  </header>
+  <main>
+    <div class="tabs" id="tabs"></div>
+    <div class="panel" id="list"></div>
+  </main>
+</div>
+
+<script type="module">
+import { db, auth, configured, doc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy,
+         signInWithEmailAndPassword, onAuthStateChanged, signOut } from "./firebase-init.js";
+
+const $=id=>document.getElementById(id);
+const LABEL={ordered:"New",preparing:"Preparing",delivered:"Delivered"};
+let orders=[], known=null, filter="todo", ctx=null, soundOn=false, unsub=null;
+
+/* ---------- sound + notifications ---------- */
+function beep(){
+  if(!soundOn||!ctx)return;
+  try{
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type="sine";o.frequency.value=880;g.gain.value=.15;
+    o.connect(g);g.connect(ctx.destination);o.start();
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.5);o.stop(ctx.currentTime+.5);
+  }catch(e){}
+}
+$("snd").onclick=()=>{
+  soundOn=!soundOn;
+  if(soundOn&&!ctx){try{ctx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}
+  if(soundOn&&ctx&&ctx.state==="suspended")ctx.resume();
+  $("snd").textContent=soundOn?"🔔 Sound on":"🔔 Sound off";
+  if(soundOn)beep();
+};
+$("ntf").onclick=()=>{
+  if(!("Notification" in window)){$("ntf").textContent="Not supported";return}
+  Notification.requestPermission().then(p=>{$("ntf").textContent=p==="granted"?"Alerts on":"Alerts blocked"});
+};
+function notify(o){
+  if("Notification" in window&&Notification.permission==="granted"){
+    try{new Notification("New card order",{body:o.tier+" card for "+o.name+" → "+o.room})}catch(e){}
+  }
+}
+
+/* ---------- actions ---------- */
+const setStatus=(id,status)=>updateDoc(doc(db,"orders",id),{status}).catch(()=>alert("Couldn't update that order."));
+const remove=id=>{if(confirm("Delete this order?"))deleteDoc(doc(db,"orders",id)).catch(()=>alert("Couldn't delete."))};
+
+/* ---------- drawing ---------- */
+function drawTabs(){
+  const box=$("tabs");box.textContent="";
+  const todo=orders.filter(o=>o.status!=="delivered").length;
+  [["todo","To do ("+todo+")"],["all","All ("+orders.length+")"],["delivered","Delivered"]].forEach(([k,label])=>{
+    const b=document.createElement("button");b.textContent=label;
+    if(k===filter)b.className="on";
+    b.onclick=()=>{filter=k;draw()};
+    box.appendChild(b);
+  });
+}
+function draw(fresh=[]){
+  drawTabs();
+  const box=$("list");box.textContent="";
+  const rows=orders.filter(o=>filter==="all"||(filter==="todo"?o.status!=="delivered":o.status==="delivered"));
+  if(!rows.length){
+    const e=document.createElement("div");e.className="empty";
+    e.textContent=filter==="todo"?"No orders waiting. 🎉":"Nothing here.";
+    box.appendChild(e);return;
+  }
+  rows.forEach(o=>{
+    const el=document.createElement("div");el.className="order"+(fresh.includes(o.id)?" new":"");
+    const r=document.createElement("div");r.className="row";
+    const t=document.createElement("strong");t.textContent=o.tier+" card for "+o.name;
+    const p=document.createElement("span");p.className="pill s-"+o.status;p.textContent=LABEL[o.status]||o.status;
+    r.append(t,p);el.appendChild(r);
+    const m=document.createElement("div");m.className="meta";
+    m.textContent="Deliver to: "+o.room+" · "+new Date(o.at).toLocaleString([],{dateStyle:"short",timeStyle:"short"});
+    el.appendChild(m);
+    if(o.note){const n=document.createElement("div");n.className="meta";n.textContent="Note: "+o.note;el.appendChild(n)}
+    const ac=document.createElement("div");ac.className="actions";
+    if(o.status==="ordered"){const b=document.createElement("button");b.className="ghost";b.textContent="Start preparing";b.onclick=()=>setStatus(o.id,"preparing");ac.appendChild(b)}
+    if(o.status!=="delivered"){const b=document.createElement("button");b.textContent="Mark delivered";b.onclick=()=>setStatus(o.id,"delivered");ac.appendChild(b)}
+    const d=document.createElement("button");d.className="danger";d.textContent="Delete";d.onclick=()=>remove(o.id);ac.appendChild(d);
+    el.appendChild(ac);box.appendChild(el);
+  });
+}
+
+/* ---------- live data ---------- */
+function listen(){
+  if(unsub)unsub();
+  known=null;
+  unsub=onSnapshot(query(collection(db,"orders"),orderBy("at","desc")),snap=>{
+    $("live").textContent="● live";
+    const list=snap.docs.map(d=>({id:d.id,...d.data()}));
+    const fresh=known?list.filter(o=>!known.has(o.id)):[];
+    known=new Set(list.map(o=>o.id));
+    orders=list;draw(fresh.map(o=>o.id));
+    if(fresh.length){
+      beep();fresh.forEach(notify);
+      document.title="("+fresh.length+") New order! | Home Bank";
+      setTimeout(()=>{document.title="Banker | Home Bank"},4000);
+    }
+  },err=>{
+    if(err.code==="permission-denied"){
+      $("err").textContent="That account isn't the banker account.";
+      signOut(auth);
+    }else{$("live").textContent="reconnecting…"}
+  });
+}
+
+/* ---------- login ---------- */
+function showApp(){$("loginView").hidden=true;$("appView").hidden=false;listen()}
+function showLogin(){if(unsub){unsub();unsub=null}$("appView").hidden=true;$("loginView").hidden=false}
+async function login(){
+  $("err").textContent="";
+  try{await signInWithEmailAndPassword(auth,$("em").value.trim(),$("pw").value);$("pw").value=""}
+  catch(e){$("err").textContent="Wrong email or password."}
+}
+$("go").onclick=login;
+$("pw").onkeydown=e=>{if(e.key==="Enter")login()};
+$("out").onclick=()=>signOut(auth);
+
+if(!configured){
+  showLogin();$("go").disabled=true;
+  $("err").textContent="Not set up yet: add your Firebase settings (see SETUP.md).";
+}else{
+  onAuthStateChanged(auth,u=>{u?showApp():showLogin()});
+}
+</script>
+</body>
+</html>

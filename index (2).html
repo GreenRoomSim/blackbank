@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Home Bank</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--ink:#14213d;--mute:#5b6784;--line:#dde3f0;--accent:#1f4fd8;--accent-ink:#fff;--ok:#1a7f4b;--warn:#b26a00}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1424;--card:#172038;--ink:#eef2ff;--mute:#9aa6c7;--line:#27325a;--accent:#5b86ff;--accent-ink:#0b1020;--ok:#4cc38a;--warn:#f0b04a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.45}
+header,main{max-width:560px;margin:0 auto;padding:16px}
+header{padding-top:24px;padding-bottom:0}
+h1{margin:0;font-size:1.5rem}
+.sub{color:var(--mute);font-size:.9rem}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
+h2{font-size:1.05rem;margin:0 0 10px}
+label{display:block;font-size:.85rem;color:var(--mute);margin:12px 0 4px}
+input,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:12px 16px;background:var(--accent);color:var(--accent-ink);font-weight:600;width:100%;margin-top:16px}
+button:disabled{opacity:.5}
+.tiers{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.tier{border-radius:12px;padding:12px;color:#fff;cursor:pointer;border:3px solid transparent;font-weight:600;min-height:74px;display:flex;flex-direction:column;justify-content:space-between}
+.tier small{font-weight:400;opacity:.85}
+.tier.sel{border-color:var(--accent)}
+.t-Standard{background:linear-gradient(135deg,#3a6df0,#6b93ff)}
+.t-Gold{background:linear-gradient(135deg,#b8860b,#e8c35a)}
+.t-Platinum{background:linear-gradient(135deg,#6c7a8d,#b9c4d3)}
+.t-Black{background:linear-gradient(135deg,#0b0b0f,#3a3a46)}
+.msg{background:var(--bg);border:1px dashed var(--line);border-radius:10px;padding:10px 12px;color:var(--mute);font-size:.9rem;margin-top:12px}
+.order{border-top:1px solid var(--line);padding:10px 0}
+.order:first-of-type{border-top:0}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.meta{color:var(--mute);font-size:.85rem}
+.pill{font-size:.75rem;padding:3px 9px;border-radius:99px;border:1px solid var(--line);white-space:nowrap}
+.s-ordered{color:var(--warn)}.s-preparing{color:var(--accent)}.s-delivered{color:var(--ok)}
+footer{text-align:center;color:var(--mute);font-size:.78rem;padding:0 16px 24px}
+</style>
+</head>
+<body>
+<header><h1>🏦 Home Bank</h1><div class="sub">Card services &middot; delivered to your door</div></header>
+<main>
+  <section class="panel">
+    <h2>Order a new bank card</h2>
+    <div class="tiers" id="tiers"></div>
+    <label for="nm">Name on card</label>
+    <input id="nm" maxlength="30" autocomplete="off" placeholder="Your name">
+    <label for="room">Deliver to</label>
+    <input id="room" maxlength="40" value="My room">
+    <label for="note">Note for the banker (optional)</label>
+    <textarea id="note" rows="2" maxlength="140" placeholder="Anything special?"></textarea>
+    <button id="send">Order card</button>
+    <div class="msg" id="msg" hidden></div>
+  </section>
+  <section class="panel" id="histPanel" hidden>
+    <h2>My orders</h2>
+    <div id="hist"></div>
+  </section>
+</main>
+<footer>Pretend bank for a pretend economy. No real money here.</footer>
+<script type="module">
+import { db, configured, doc, setDoc, onSnapshot } from "./firebase-init.js";
+
+const TIERS=[["Standard","Everyday card"],["Gold","Fancy perks"],["Platinum","Very fancy"],["Black","Top secret"]];
+const LABEL={ordered:"Ordered",preparing:"Being prepared",delivered:"Delivered"};
+const $=id=>document.getElementById(id);
+let selected="Standard";
+const subs={}, data={};
+
+function show(t){const m=$("msg");m.textContent=t;m.hidden=!t}
+function ids(){try{return JSON.parse(localStorage.getItem("hb_ids")||"[]")}catch(e){return[]}}
+function saveId(id){try{localStorage.setItem("hb_ids",JSON.stringify([id,...ids()].slice(0,30)))}catch(e){}}
+function newId(){const a=new Uint8Array(10);crypto.getRandomValues(a);return Array.from(a,b=>b.toString(16).padStart(2,"0")).join("")}
+
+function drawTiers(){
+  const box=$("tiers");box.textContent="";
+  TIERS.forEach(([name,desc])=>{
+    const d=document.createElement("div");
+    d.className="tier t-"+name+(name===selected?" sel":"");
+    const a=document.createElement("span");a.textContent=name;
+    const b=document.createElement("small");b.textContent=desc;
+    d.append(a,b);
+    d.onclick=()=>{selected=name;drawTiers()};
+    box.appendChild(d);
+  });
+}
+
+function render(){
+  const rows=Object.entries(data).sort((a,b)=>b[1].at-a[1].at);
+  $("histPanel").hidden=!rows.length;
+  const box=$("hist");box.textContent="";
+  rows.forEach(([id,o])=>{
+    const el=document.createElement("div");el.className="order";
+    const r=document.createElement("div");r.className="row";
+    const t=document.createElement("strong");t.textContent=o.tier+" card for "+o.name;
+    const p=document.createElement("span");p.className="pill s-"+o.status;p.textContent=LABEL[o.status]||o.status;
+    r.append(t,p);el.appendChild(r);
+    const m=document.createElement("div");m.className="meta";
+    m.textContent="To: "+o.room+" · "+new Date(o.at).toLocaleString([],{dateStyle:"short",timeStyle:"short"});
+    el.appendChild(m);box.appendChild(el);
+  });
+}
+
+function watch(id){
+  if(subs[id])return;
+  subs[id]=onSnapshot(doc(db,"orders",id),
+    s=>{if(s.exists())data[id]=s.data();else delete data[id];render()},
+    ()=>{});
+}
+
+$("send").onclick=async()=>{
+  const name=$("nm").value.trim();
+  if(!name){show("Please enter the name for the card.");$("nm").focus();return}
+  const btn=$("send");btn.disabled=true;
+  const id=newId();
+  try{
+    await setDoc(doc(db,"orders",id),{
+      tier:selected,name:name,room:$("room").value.trim()||"My room",
+      note:$("note").value.trim(),status:"ordered",at:Date.now()
+    });
+    saveId(id);watch(id);$("note").value="";
+    show("Order sent! Your card is on its way. 💳");
+    setTimeout(()=>show(""),4000);
+  }catch(e){show("Couldn't place the order. Check your connection and try again.")}
+  btn.disabled=false;
+};
+
+drawTiers();
+if(!configured){
+  $("send").disabled=true;
+  show("This site isn't set up yet: the banker needs to add the Firebase settings (see SETUP.md).");
+}else{
+  ids().forEach(watch);
+}
+</script>
+</body>
+</html>
