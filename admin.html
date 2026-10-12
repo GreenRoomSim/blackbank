@@ -71,6 +71,7 @@ button.danger{background:transparent;color:#c0392b;border:1px solid var(--line)}
   </main>
 </div>
 
+<script>window.addEventListener("error",function(e){var d=document.createElement("div");d.style.cssText="padding:24px;color:#e0a89c;font-family:system-ui;line-height:1.5";d.textContent="This page couldn't load: "+(e.message||"script error")+". Make sure every file was uploaded to GitHub, then hard refresh.";document.body.appendChild(d)});</script>
 <script type="module">
 import { db, auth, configured, doc, setDoc, increment, writeBatch, updateDoc, deleteDoc, accountKey, fmtAcct, money, onSnapshot, collection, query, orderBy,
          signInWithEmailAndPassword, onAuthStateChanged, signOut } from "./firebase-init.js";
