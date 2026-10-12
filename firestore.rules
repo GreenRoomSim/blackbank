@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // CHANGE THE EMAIL BELOW to your banker login (used in both places).
+    function isBanker() {
+      return request.auth != null && request.auth.token.email == 'spenloymil@gmail.com';
+    }
+
+    match /orders/{id} {
+      allow get: if true;
+      allow list, update, delete: if isBanker();
+      allow create: if request.resource.data.keys().hasOnly(['tier','name','pin','room','note','status','at'])
+        && request.resource.data.status == 'ordered'
+        && request.resource.data.tier in ['Silver','Silver Max','Gold','Black']
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 30
+        && request.resource.data.pin is string && request.resource.data.pin.matches('^[0-9]{4}$')
+        && request.resource.data.room is string && request.resource.data.room.size() <= 40
+        && request.resource.data.note is string && request.resource.data.note.size() <= 140
+        && request.resource.data.at is number;
+    }
+
+    // Document id = SHA-256(accountNumber:pin). Fetching one needs both; nobody can list them.
+    match /accounts/{id} {
+      allow get: if true;
+      allow list, delete: if isBanker();
+      allow create, update: if isBanker() && request.resource.data.balance is number
+        && request.resource.data.balance >= 0;
+    }
+  }
+}

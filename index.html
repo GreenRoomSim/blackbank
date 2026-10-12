@@ -5,168 +5,59 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Black Bank</title>
 <style>
-:root{--bg:#070708;--card:#111114;--ink:#f4f1ea;--mute:#8d8a82;--line:#2a2a2e;--accent:#c9a24b;--ok:#6fcf97;--warn:#c9a24b}
+:root{--bg:#070708;--card:#101013;--ink:#f4f1ea;--mute:#8d8a82;--line:#2a2a2e;--accent:#c9a24b}
 *{box-sizing:border-box}
-body{margin:0;background:radial-gradient(circle at 50% -10%,#2a2212,var(--bg) 60%) fixed;color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.45}
-header,main{max-width:480px;margin:0 auto;padding:16px}
-header{padding-top:22px;padding-bottom:0;text-align:center}
-h1{margin:0;font-size:1.4rem;letter-spacing:7px;font-weight:600;font-family:Georgia,'Times New Roman',serif}.sub{color:var(--mute);font-size:.9rem}
-.dots{display:flex;gap:6px;justify-content:center;margin:6px 0 14px}
-.dots i{width:22px;height:4px;border-radius:4px;background:var(--line);transition:.3s}.dots i.on{background:var(--accent)}
-.stage{perspective:900px;position:relative;display:flex;justify-content:center;margin-bottom:16px}
-.card{width:100%;max-width:340px;aspect-ratio:1.586;border-radius:18px;position:relative;overflow:hidden;padding:18px;color:var(--fg);background:linear-gradient(135deg,var(--g1),var(--g2));box-shadow:0 18px 40px rgba(0,0,0,.45);transition:box-shadow .3s}
-.card[data-tier=silver]{--g1:#8f98a3;--g2:#e3e7ec;--fg:#1d2430}
-.card[data-tier=silvermax]{--g1:#5c6f8c;--g2:#dfe9f7;--fg:#101a2c}
-.card[data-tier=gold]{--g1:#a87908;--g2:#f0cf6a;--fg:#2b1d00}
-.card[data-tier=black]{--g1:#06060a;--g2:#3a3a48;--fg:#f2f2f6}
-.card.flip{animation:flip .8s cubic-bezier(.3,.7,.3,1)}
-@keyframes flip{0%{transform:rotateY(0) scale(1)}50%{transform:rotateY(90deg) scale(.92)}100%{transform:rotateY(360deg) scale(1)}}
-.card.shake{animation:shake .4s}
-.shine{position:absolute;inset:0;background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.55) 50%,transparent 65%);transform:translateX(-120%)}
-.card.flip .shine,.card.pop .shine{animation:sweep .9s .35s}
-@keyframes sweep{to{transform:translateX(120%)}}
-.brand{font-weight:800;letter-spacing:2px;font-size:.8rem}
-.chip{width:42px;height:32px;border-radius:7px;margin-top:14px;background:linear-gradient(135deg,#d8b24a,#f7e39a);opacity:.9}
-.num{position:absolute;left:18px;bottom:50px;font-size:1.05rem;letter-spacing:2px}
-.holder{position:absolute;left:18px;bottom:18px;right:90px;font-size:.85rem;letter-spacing:1.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tn{position:absolute;right:18px;bottom:18px;font-weight:700;font-size:.85rem}
-.sp{position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:50%;pointer-events:none;animation:fly .8s ease-out forwards}
-@keyframes fly{to{transform:translate(var(--x),var(--y)) scale(0);opacity:0}}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:14px;overflow:hidden}
-.step{animation:inf .35s ease both}.step.inb{animation-name:inb}
-@keyframes inf{from{opacity:0;transform:translateX(40px)}}
-@keyframes inb{from{opacity:0;transform:translateX(-40px)}}
-h2{font-size:1.15rem;margin:0 0 4px}.hint{color:var(--mute);font-size:.88rem;margin:0 0 14px}
-.tiers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.t{border:2px solid var(--line);background:transparent;color:var(--ink);border-radius:12px;padding:10px;text-align:left;font:inherit;cursor:pointer;transition:.2s}
-.t:hover{transform:translateY(-3px)}.t.sel{border-color:var(--accent);background:rgba(201,162,75,.12);transform:translateY(-3px) scale(1.03)}
-.t b{display:block}.t small{color:var(--mute)}
-.sw{height:8px;border-radius:4px;margin-bottom:8px}
-input,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
-label{display:block;font-size:.85rem;color:var(--mute);margin:4px 0}
-.btn{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:13px 16px;background:var(--accent);color:#0b1020;font-weight:700;width:100%;margin-top:8px}
-.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}.btn:disabled{opacity:.4}
-.pd{display:flex;gap:12px;justify-content:center;margin:6px 0 14px}
-.pd i{width:16px;height:16px;border-radius:50%;border:2px solid var(--mute);transition:.15s}.pd i.f{background:var(--accent);border-color:var(--accent);transform:scale(1.15)}
-.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:260px;margin:0 auto}
-.pad button{font:inherit;font-size:1.3rem;padding:14px 0;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
-.pad button:active{background:var(--line)}
-.warn{color:var(--warn);font-size:.82rem;text-align:center;margin-top:12px}
-.rv{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:.92rem}
-.rv:first-of-type{border-top:0}.rv span:first-child{color:var(--mute)}
-.big{font-size:2.4rem;text-align:center}
-.order{border-top:1px solid var(--line);padding:10px 0}.order:first-of-type{border-top:0}
-.row{display:flex;justify-content:space-between;gap:10px}.meta{color:var(--mute);font-size:.85rem}
-.pill{font-size:.75rem;padding:3px 9px;border-radius:99px;border:1px solid var(--line);white-space:nowrap}
-.s-ordered{color:var(--warn)}.s-preparing{color:var(--accent)}.s-delivered{color:var(--ok)}
-footer{text-align:center;color:var(--mute);font-size:.78rem;padding:0 16px 24px}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.hero{min-height:100vh;min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:space-between;text-align:center;padding:90px 24px calc(34px + env(safe-area-inset-bottom,0px));background:radial-gradient(ellipse at 50% 30%,#2a2212 0%,var(--bg) 62%)}
+.mid{margin:auto 0}
+.mark{width:54px;height:54px;border:1px solid var(--accent);transform:rotate(45deg);margin:0 auto 46px;display:grid;place-items:center;animation:up 1s ease both}
+.mark i{width:26px;height:26px;background:var(--accent);opacity:.9}
+.kick{letter-spacing:6px;text-transform:uppercase;font-size:.72rem;color:var(--accent);animation:up 1s .15s ease both}
+h1{font-family:Georgia,"Times New Roman",serif;font-weight:400;font-size:clamp(2.2rem,8vw,3.4rem);line-height:1.15;margin:16px 0 0;animation:up 1s .3s ease both}
+.rule{width:60px;height:1px;background:var(--accent);margin:26px auto;animation:up 1s .45s ease both}
+.lead{max-width:360px;margin:0 auto;color:var(--mute);line-height:1.7;animation:up 1s .6s ease both}
+.more{display:inline-flex;flex-direction:column;align-items:center;gap:10px;color:var(--ink);text-decoration:none;letter-spacing:4px;text-transform:uppercase;font-size:.78rem;animation:up 1s .9s ease both}
+.more b{color:var(--accent);font-size:1.3rem;animation:bob 1.8s ease-in-out infinite}
+.more:hover{color:var(--accent)}
+@keyframes up{from{opacity:0;transform:translateY(18px)}}
+@keyframes bob{50%{transform:translateY(6px)}}
+section{max-width:620px;margin:0 auto;padding:80px 22px 60px}
+section h2{font-family:Georgia,serif;font-weight:400;font-size:1.7rem;margin:0}
+section .sub{color:var(--mute);margin:8px 0 30px}
+.svc{display:flex;gap:16px;align-items:center;padding:22px 0;border-top:1px solid var(--line);text-decoration:none;color:inherit;transition:.25s}
+.svc:last-of-type{border-bottom:1px solid var(--line)}
+.svc .n{color:var(--accent);font-family:Georgia,serif;font-size:1.1rem;width:28px;flex:none}
+.svc div{flex:1}.svc strong{display:block;font-weight:600;letter-spacing:.5px;margin-bottom:4px}
+.svc span{color:var(--mute);font-size:.9rem;line-height:1.5}
+.svc em{font-style:normal;color:var(--mute);transition:.25s}
+.svc:hover{padding-left:8px}.svc:hover em,.svc:hover strong{color:var(--accent)}
+.svc:hover em{transform:translateX(4px)}
+footer{text-align:center;color:var(--mute);letter-spacing:5px;font-size:.7rem;padding:10px 0 40px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;scroll-behavior:auto}}
 </style>
 </head>
 <body>
-<header><h1>BLACK BANK</h1><div class="sub">Private card services</div></header>
-<main>
-  <div class="dots" id="dots"></div>
-  <div class="stage"><div class="card" id="card" data-tier="silver">
-    <div class="shine"></div><div class="brand">BLACK BANK</div><div class="chip"></div>
-    <div class="num">•••• •••• •••• 2026</div><div class="holder" id="holder">YOUR NAME</div><div class="tn" id="tn">Silver</div>
-  </div></div>
-  <section class="panel"><div id="step" class="step"></div></section>
-  <section class="panel" id="histPanel" hidden><h2>My orders</h2><div id="hist"></div></section>
-</main>
-<script type="module">
-import { db, configured, doc, setDoc, onSnapshot } from "./firebase-init.js";
-const TIERS=[["Silver","silver","Everyday spending"],["Silver Max","silvermax","Silver, turbocharged"],["Gold","gold","Fancy perks"],["Black","black","Top secret"]];
-const GRAD={silver:["#8f98a3","#e3e7ec"],silvermax:["#5c6f8c","#dfe9f7"],gold:["#a87908","#f0cf6a"],black:["#06060a","#3a3a48"]};
-const LABEL={ordered:"Ordered",preparing:"Being prepared",delivered:"Delivered"};
-const $=id=>document.getElementById(id);
-const S={step:0,tier:0,name:"",pin:"",pin2:"",room:"My room",note:"",err:""};
-const subs={},data={};
-const ids=()=>{try{return JSON.parse(localStorage.getItem("hb_ids")||"[]")}catch(e){return[]}};
-const saveId=id=>{try{localStorage.setItem("hb_ids",JSON.stringify([id,...ids()].slice(0,30)))}catch(e){}};
-const newId=()=>Array.from(crypto.getRandomValues(new Uint8Array(10)),b=>b.toString(16).padStart(2,"0")).join("");
-const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
+<header class="hero">
+  <div class="mid">
+    <div class="mark"><i></i></div>
+    <div class="kick">Black Bank</div>
+    <h1>Welcome to<br>Black Bank</h1>
+    <div class="rule"></div>
+    <p class="lead">Private banking, made personal. Your cards, your accounts and your banker, all in one place.</p>
+  </div>
+  <a class="more" href="#services">View services<b>⌄</b></a>
+</header>
 
-function sparkle(){
-  const st=document.querySelector(".stage"),cols=GRAD[TIERS[S.tier][1]];
-  for(let i=0;i<14;i++){const s=el("span","sp"),a=Math.random()*6.28,d=70+Math.random()*80;
-    s.style.setProperty("--x",Math.cos(a)*d+"px");s.style.setProperty("--y",Math.sin(a)*d+"px");
-    s.style.background=cols[i%2];st.appendChild(s);setTimeout(()=>s.remove(),900)}
-}
-function anim(cls){const c=$("card");c.classList.remove(cls);void c.offsetWidth;c.classList.add(cls)}
-function paint(){const t=TIERS[S.tier];$("card").dataset.tier=t[1];$("tn").textContent=t[0];$("holder").textContent=(S.name||"YOUR NAME").toUpperCase()}
-function go(n){const back=n<S.step;S.step=n;S.err="";render(back)}
-
-function render(back){
-  const box=$("step");box.className="step"+(back?" inb":"");box.style.animation="none";void box.offsetWidth;box.style.animation="";
-  $("dots").textContent="";for(let i=0;i<6;i++)$("dots").appendChild(el("i",i<=Math.min(S.step,5)?"on":""));
-  box.textContent="";paint();
-  const n=S.step,nav=(label,fn,dis)=>{const b=el("button","btn",label);b.disabled=!!dis;b.onclick=fn;box.appendChild(b);return b};
-  const backBtn=()=>{const b=nav("Back",()=>go(n-1));b.classList.add("ghost")};
-  if(n===0){
-    box.append(el("h2","","Choose your card"),el("p","hint","Tap a card to preview it"));
-    const g=el("div","tiers");
-    TIERS.forEach((t,i)=>{const b=el("button","t"+(i===S.tier?" sel":""));
-      const sw=el("div","sw");sw.style.background=`linear-gradient(90deg,${GRAD[t[1]][0]},${GRAD[t[1]][1]})`;
-      b.append(sw,el("b","",t[0]),el("small","",t[2]));
-      b.onclick=()=>{if(S.tier===i)return;S.tier=i;g.querySelectorAll(".t").forEach((x,j)=>x.classList.toggle("sel",j===i));
-        anim("flip");setTimeout(()=>{paint();sparkle()},320)};
-      g.appendChild(b)});
-    box.appendChild(g);nav("Continue",()=>go(1));
-  }else if(n===1){
-    box.append(el("h2","","What's your name?"),el("p","hint","This goes on your card"));
-    const i=el("input");i.maxLength=24;i.placeholder="Your name";i.value=S.name;i.autocomplete="off";
-    const b=nav("Continue",()=>go(2),!S.name.trim());box.insertBefore(i,b);
-    i.oninput=()=>{S.name=i.value;b.disabled=!i.value.trim();paint()};i.onkeydown=e=>{if(e.key==="Enter"&&S.name.trim())go(2)};
-    backBtn();
-  }else if(n===2||n===3){
-    const k=n===2?"pin":"pin2";
-    box.append(el("h2","",n===2?"Choose a PIN":"Confirm your PIN"),el("p","hint",n===2?"4 digits":"Enter it once more"));
-    const pd=el("div","pd");for(let j=0;j<4;j++)pd.appendChild(el("i",j<S[k].length?"f":""));box.appendChild(pd);
-    if(S.err)box.appendChild(el("p","hint",S.err)).style.textAlign="center";
-    const pad=el("div","pad");
-    ["1","2","3","4","5","6","7","8","9","","0","⌫"].forEach(d=>{const b=el("button","",d);if(!d)b.style.visibility="hidden";
-      b.onclick=()=>{if(d==="⌫")S[k]=S[k].slice(0,-1);else if(S[k].length<4)S[k]+=d;
-        if(S[k].length===4){
-          if(n===2)return setTimeout(()=>go(3),200);
-          if(S.pin2===S.pin)return setTimeout(()=>go(4),200);
-          S.pin2="";S.err="PINs didn't match. Try again.";anim("shake");return render()}
-        render();box.style.animation="none"};
-      pad.appendChild(b)});
-    box.appendChild(pad);box.appendChild(el("p","warn","Choose one you've never used anywhere else."));backBtn();
-  }else if(n===4){
-    box.append(el("h2","","Anything else?"),el("p","hint","Extra notes for the banker (optional)"));
-    const l1=el("label","","Deliver to"),r=el("input");r.maxLength=40;r.value=S.room;r.oninput=()=>S.room=r.value;
-    const l2=el("label","","Notes"),t=el("textarea");t.rows=3;t.maxLength=140;t.value=S.note;t.placeholder="e.g. knock first!";t.oninput=()=>S.note=t.value;
-    box.append(l1,r,l2,t);nav("Review order",()=>go(5));backBtn();
-  }else if(n===5){
-    box.append(el("h2","","Check your order"));
-    [["Card",TIERS[S.tier][0]],["Name",S.name],["PIN","••••"],["Deliver to",S.room||"My room"],["Notes",S.note||"None"]].forEach(([a,b])=>{
-      const r=el("div","rv");r.append(el("span","",a),el("span","",b));box.appendChild(r)});
-    if(S.err)box.appendChild(el("p","warn",S.err));
-    const b=nav("Place order",async()=>{b.disabled=true;const id=newId();
-      try{await setDoc(doc(db,"orders",id),{tier:TIERS[S.tier][0],name:S.name.trim(),pin:S.pin,room:(S.room||"").trim()||"My room",note:S.note.trim(),status:"ordered",at:Date.now()});
-        saveId(id);watch(id);go(6);anim("pop");sparkle();setTimeout(sparkle,250)}
-      catch(e){S.err="Couldn't place the order. Check your connection.";render()}});
-    backBtn();
-  }else{
-    box.append(el("div","big","✦"),el("h2","","Order placed!"),el("p","hint","Your card is being made. Track it below."));
-    nav("Order another card",()=>{Object.assign(S,{tier:0,name:"",pin:"",pin2:"",room:"My room",note:""});go(0)});
-  }
-}
-
-function drawHist(){
-  const rows=Object.values(data).sort((a,b)=>b.at-a.at),box=$("hist");
-  $("histPanel").hidden=!rows.length;box.textContent="";
-  rows.forEach(o=>{const d=el("div","order"),r=el("div","row");
-    r.append(el("strong","",o.tier+" card for "+o.name),el("span","pill s-"+o.status,LABEL[o.status]||o.status));
-    d.append(r,el("div","meta","To: "+o.room+" · "+new Date(o.at).toLocaleString([],{dateStyle:"short",timeStyle:"short"})));box.appendChild(d)});
-}
-function watch(id){if(subs[id])return;subs[id]=onSnapshot(doc(db,"orders",id),s=>{s.exists()?data[id]=s.data():delete data[id];drawHist()},()=>{})}
-
-if(configured)ids().forEach(watch);
-render();
-if(!configured){const b=$("step");b.textContent="This site isn't set up yet. The banker needs to add the Firebase settings (see SETUP.md).";}
-</script>
+<section id="services">
+  <h2>Our services</h2>
+  <p class="sub">Everything you need, handled personally.</p>
+  <a class="svc" href="order.html"><span class="n">01</span><div><strong>Order a card</strong><span>Choose from Silver, Silver Max, Gold or Black, set your PIN, and have it delivered to your door.</span></div><em>→</em></a>
+  <a class="svc" href="balance.html"><span class="n">02</span><div><strong>Check your balance</strong><span>View your balance securely with your account number and PIN.</span></div><em>→</em></a>
+  <div class="svc"><span class="n">03</span><div><strong>Deposits &amp; withdrawals</strong><span>Visit your banker to add or withdraw funds. Your balance updates instantly.</span></div></div>
+  <a class="svc" href="admin.html"><span class="n">04</span><div><strong>Banker login</strong><span>For bank staff: manage orders, open accounts and handle funds.</span></div><em>→</em></a>
+</section>
+<footer>BLACK BANK</footer>
+<script src="nav.js"></script>
 </body>
 </html>

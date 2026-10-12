@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Balance | Black Bank</title>
+<style>
+:root{--bg:#070708;--card:#111114;--ink:#f4f1ea;--mute:#8d8a82;--line:#2a2a2e;--accent:#c9a24b}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -10%,#2a2212,var(--bg) 60%) fixed;color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:440px;margin:0 auto;padding:78px 16px 40px}
+h1{margin:0 0 4px;font-size:1.4rem;letter-spacing:7px;font-weight:600;font-family:Georgia,serif;text-align:center}
+.sub{color:var(--mute);text-align:center;margin-bottom:22px;font-size:.9rem}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+label{display:block;font-size:.85rem;color:var(--mute);margin:10px 0 4px}
+input{width:100%;font:inherit;font-size:1.1rem;letter-spacing:2px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:13px;background:var(--accent);color:#0b0b0c;font-weight:700;width:100%;margin-top:16px}
+button:disabled{opacity:.5}
+.err{color:#e0897a;text-align:center;font-size:.9rem;min-height:1.3em;margin-top:10px}
+.acct{display:none;animation:in .5s ease both}
+@keyframes in{from{opacity:0;transform:translateY(18px)}}
+.card{aspect-ratio:1.586;border-radius:18px;padding:18px;position:relative;overflow:hidden;color:var(--fg);background:linear-gradient(135deg,var(--g1),var(--g2));box-shadow:0 18px 40px rgba(0,0,0,.5)}
+.card[data-tier=silver]{--g1:#8f98a3;--g2:#e3e7ec;--fg:#1d2430}
+.card[data-tier=silvermax]{--g1:#5c6f8c;--g2:#dfe9f7;--fg:#101a2c}
+.card[data-tier=gold]{--g1:#a87908;--g2:#f0cf6a;--fg:#2b1d00}
+.card[data-tier=black]{--g1:#06060a;--g2:#3a3a48;--fg:#f2f2f6}
+.card .b{font-weight:800;letter-spacing:2px;font-size:.8rem}
+.card .n{position:absolute;left:18px;bottom:50px;letter-spacing:2px}.card .h{position:absolute;left:18px;bottom:18px;font-size:.85rem;letter-spacing:1.5px}
+.card .t{position:absolute;right:18px;bottom:18px;font-weight:700;font-size:.85rem}
+.bal{text-align:center;margin:22px 0 4px;font-size:2.6rem;font-weight:600;font-family:Georgia,serif;color:var(--accent)}
+.lbl{text-align:center;color:var(--mute);font-size:.8rem;letter-spacing:3px;text-transform:uppercase}
+.out{background:transparent;border:1px solid var(--line);color:var(--mute);margin-top:18px}
+</style>
+</head>
+<body>
+<main>
+  <h1>BLACK BANK</h1><div class="sub">Account balance</div>
+  <div class="panel" id="form">
+    <label for="an">Account number</label>
+    <input id="an" inputmode="numeric" autocomplete="off" placeholder="0000 2026" maxlength="19">
+    <label for="pn">PIN</label>
+    <input id="pn" type="password" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="••••">
+    <button id="go">View balance</button>
+    <div class="err" id="err"></div>
+  </div>
+  <div class="acct" id="acct">
+    <div class="card" id="card"><div class="b">BLACK BANK</div><div class="n" id="cn"></div><div class="h" id="ch"></div><div class="t" id="ct"></div></div>
+    <div class="bal" id="bal">£0.00</div><div class="lbl">Available balance</div>
+    <button class="out" id="out">Sign out</button>
+  </div>
+</main>
+<script type="module">
+import { db, configured, doc, onSnapshot, accountKey, fmtAcct, money } from "./firebase-init.js";
+const $=id=>document.getElementById(id);
+let unsub=null,shown=0,fails=0,lockUntil=0;
+$("an").oninput=e=>{e.target.value=fmtAcct(e.target.value.replace(/\D/g,"").slice(0,16))};
+function count(to){const from=shown,t0=performance.now();shown=to;
+  (function f(t){const k=Math.min(1,(t-t0)/700),e=1-Math.pow(1-k,3);$("bal").textContent=money(Math.round(from+(to-from)*e));if(k<1)requestAnimationFrame(f)})(t0)}
+async function open(){
+  const a=$("an").value.replace(/\D/g,""),p=$("pn").value;
+  $("err").textContent="";
+  if(Date.now()<lockUntil){$("err").textContent="Too many attempts. Please wait a moment.";return}
+  if((a.length!==8&&a.length!==16)||p.length!==4){$("err").textContent="Enter your account number and 4-digit PIN.";return}
+  if(!configured){$("err").textContent="Not available yet.";return}
+  $("go").disabled=true;
+  const key=await accountKey(a,p);
+  let first=true;
+  unsub=onSnapshot(doc(db,"accounts",key),s=>{
+    if(!s.exists()){
+      if(first){fails++;if(fails>=3){lockUntil=Date.now()+30000;fails=0}$("err").textContent="Account number or PIN is incorrect.";$("go").disabled=false;if(unsub)unsub();unsub=null}
+      else close();return}
+    const d=s.data();
+    if(first){first=false;fails=0;$("form").style.display="none";$("acct").style.display="block";
+      $("card").dataset.tier=d.tier.toLowerCase().replace(/\s/g,"");$("cn").textContent="•••• "+d.acct.slice(-4);
+      $("ch").textContent=d.name.toUpperCase();$("ct").textContent=d.tier;shown=0}
+    count(d.balance);
+  },()=>{$("err").textContent="Couldn't reach the bank.";$("go").disabled=false});
+}
+function close(){if(unsub)unsub();unsub=null;$("acct").style.display="none";$("form").style.display="block";$("go").disabled=false;$("pn").value="";$("an").value=""}
+$("go").onclick=open;$("pn").onkeydown=e=>{if(e.key==="Enter")open()};$("out").onclick=close;
+</script>
+<script src="nav.js"></script>
+</body>
+</html>

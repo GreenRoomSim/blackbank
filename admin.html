@@ -59,11 +59,13 @@ button.danger{background:transparent;color:#c0392b;border:1px solid var(--line)}
   <main>
     <div class="tabs" id="tabs"></div>
     <div class="panel" id="list"></div>
+    <h2 style="margin:22px 0 0;font-size:1.1rem">Accounts</h2>
+    <div class="panel"><input id="q" placeholder="Search by name or account number" autocomplete="off" style="margin:0 0 6px"><div id="accts"></div></div>
   </main>
 </div>
 
 <script type="module">
-import { db, auth, configured, doc, updateDoc, deleteDoc, onSnapshot, collection, query, orderBy,
+import { db, auth, configured, doc, setDoc, increment, updateDoc, deleteDoc, accountKey, fmtAcct, money, onSnapshot, collection, query, orderBy,
          signInWithEmailAndPassword, onAuthStateChanged, signOut } from "./firebase-init.js";
 
 const $=id=>document.getElementById(id);
@@ -131,13 +133,57 @@ function draw(fresh=[]){
     m.textContent="Deliver to: "+o.room+" · "+new Date(o.at).toLocaleString([],{dateStyle:"short",timeStyle:"short"});
     el.appendChild(m);
     if(o.note){const n=document.createElement("div");n.className="meta";n.textContent="Note: "+o.note;el.appendChild(n)}
-    if(o.pin){const q=document.createElement("div");q.className="meta";q.textContent="PIN: "+o.pin;el.appendChild(q)}
+    if(o.pin){const q=document.createElement("div");q.className="meta";q.textContent="PIN: "+o.pin+(o.acct?"  ·  Account: "+fmtAcct(o.acct):"");el.appendChild(q)}
     const ac=document.createElement("div");ac.className="actions";
     if(o.status==="ordered"){const b=document.createElement("button");b.className="ghost";b.textContent="Start preparing";b.onclick=()=>setStatus(o.id,"preparing");ac.appendChild(b)}
-    if(o.status!=="delivered"){const b=document.createElement("button");b.textContent="Mark delivered";b.onclick=()=>setStatus(o.id,"delivered");ac.appendChild(b)}
+    if(o.status!=="delivered"){const b=document.createElement("button");b.textContent="Deliver & open account";b.onclick=()=>deliver(o);ac.appendChild(b)}
     const d=document.createElement("button");d.className="danger";d.textContent="Delete";d.onclick=()=>remove(o.id);ac.appendChild(d);
     el.appendChild(ac);box.appendChild(el);
   });
+}
+
+/* ---------- accounts ---------- */
+let accts=[],unsubA=null;
+async function deliver(o){
+  try{
+    let acct;
+    do{acct=String(crypto.getRandomValues(new Uint32Array(1))[0]%10000).padStart(4,"0")+"2026"}while(accts.some(a=>a.acct===acct));
+    await setDoc(doc(db,"accounts",await accountKey(acct,o.pin)),{acct,name:o.name,tier:o.tier,balance:0,created:Date.now()});
+    await updateDoc(doc(db,"orders",o.id),{status:"delivered",acct});
+  }catch(e){alert("Couldn't open the account.")}
+}
+function adjust(a,sign,input){
+  const p=Math.round(parseFloat(input.value)*100);
+  if(!(p>0))return;
+  if(sign<0&&p>a.balance){alert("Not enough funds.");return}
+  updateDoc(doc(db,"accounts",a.id),{balance:increment(sign*p)}).then(()=>{input.value=""}).catch(()=>alert("Couldn't update the balance."));
+}
+function drawAccts(){
+  const q=$("q").value.trim().toLowerCase(),qd=q.replace(/\D/g,""),box=$("accts");box.textContent="";
+  const rows=accts.filter(a=>!q||a.name.toLowerCase().includes(q)||(qd&&a.acct.includes(qd)));
+  if(!rows.length){const e=document.createElement("div");e.className="empty";e.textContent=accts.length?"No match.":"No accounts yet. They're created when you deliver a card.";box.appendChild(e);return}
+  rows.forEach(a=>{
+    const el=document.createElement("div");el.className="order";
+    const r=document.createElement("div");r.className="row";
+    const t=document.createElement("strong");t.textContent=a.name+" · "+a.tier;
+    const bal=document.createElement("strong");bal.textContent=money(a.balance);
+    r.append(t,bal);el.appendChild(r);
+    const m=document.createElement("div");m.className="meta";m.textContent=fmtAcct(a.acct);el.appendChild(m);
+    const ac=document.createElement("div");ac.className="actions";
+    const i=document.createElement("input");i.type="number";i.min="0";i.step="0.01";i.placeholder="Amount £";i.style.cssText="width:130px;margin:0";
+    const d=document.createElement("button");d.textContent="Deposit";d.onclick=()=>adjust(a,1,i);
+    const w=document.createElement("button");w.className="ghost";w.textContent="Withdraw";w.onclick=()=>adjust(a,-1,i);
+    ac.append(i,d,w);el.appendChild(ac);box.appendChild(el);
+  });
+}
+$("q").oninput=drawAccts;
+function listenAccts(){
+  if(unsubA)unsubA();
+  unsubA=onSnapshot(collection(db,"accounts"),snap=>{
+    accts=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.created-a.created);
+    if(document.activeElement&&document.activeElement.type==="number")return;
+    drawAccts();
+  },()=>{});
 }
 
 /* ---------- live data ---------- */
@@ -164,8 +210,8 @@ function listen(){
 }
 
 /* ---------- login ---------- */
-function showApp(){$("loginView").hidden=true;$("appView").hidden=false;listen()}
-function showLogin(){if(unsub){unsub();unsub=null}$("appView").hidden=true;$("loginView").hidden=false}
+function showApp(){$("loginView").hidden=true;$("appView").hidden=false;listen();listenAccts()}
+function showLogin(){if(unsub){unsub();unsub=null}if(unsubA){unsubA();unsubA=null}$("appView").hidden=true;$("loginView").hidden=false}
 async function login(){
   $("err").textContent="";
   try{await signInWithEmailAndPassword(auth,$("em").value.trim(),$("pw").value);$("pw").value=""}
@@ -182,5 +228,6 @@ if(!configured){
   onAuthStateChanged(auth,u=>{u?showApp():showLogin()});
 }
 </script>
+<script src="nav.js"></script>
 </body>
 </html>
