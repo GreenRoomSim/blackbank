@@ -4,15 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex">
-<title>Banker | Home Bank</title>
+<title>Banker | Black Bank</title>
 <style>
-:root{--bg:#f4f6fb;--card:#fff;--ink:#14213d;--mute:#5b6784;--line:#dde3f0;--accent:#1f4fd8;--accent-ink:#fff;--ok:#1a7f4b;--warn:#b26a00}
-@media (prefers-color-scheme:dark){:root{--bg:#0e1424;--card:#172038;--ink:#eef2ff;--mute:#9aa6c7;--line:#27325a;--accent:#5b86ff;--accent-ink:#0b1020;--ok:#4cc38a;--warn:#f0b04a}}
+:root{--bg:#070708;--card:#111114;--ink:#f4f1ea;--mute:#8d8a82;--line:#2a2a2e;--accent:#c9a24b;--accent-ink:#0b0b0c;--ok:#6fcf97;--warn:#c9a24b}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.45}
 header,main{max-width:760px;margin:0 auto;padding:16px}
 header{padding-top:24px;padding-bottom:0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-h1{margin:0;font-size:1.5rem}
+h1{margin:0;font-size:1.4rem;letter-spacing:6px;font-weight:600;font-family:Georgia,'Times New Roman',serif;text-transform:uppercase}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
 input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;margin-top:10px}
 button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:9px 14px;background:var(--accent);color:var(--accent-ink);font-weight:600}
@@ -29,7 +28,7 @@ button.danger{background:transparent;color:#c0392b;border:1px solid var(--line)}
 .s-ordered{color:var(--warn)}.s-preparing{color:var(--accent)}.s-delivered{color:var(--ok)}
 .actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .new{animation:flash 1.6s ease-out}
-@keyframes flash{from{background:rgba(91,134,255,.35)}to{background:transparent}}
+@keyframes flash{from{background:rgba(201,162,75,.3)}to{background:transparent}}
 .err{color:#c0392b;font-size:.9rem;margin-top:8px;min-height:1.2em}
 .empty,.live{color:var(--mute);font-size:.9rem}
 </style>
@@ -37,7 +36,7 @@ button.danger{background:transparent;color:#c0392b;border:1px solid var(--line)}
 <body>
 <div id="loginView" hidden>
   <main style="max-width:420px">
-    <h1>🏦 Banker login</h1>
+    <h1>Banker login</h1>
     <div class="panel">
       <input id="em" type="email" placeholder="Banker email" autocomplete="username">
       <input id="pw" type="password" placeholder="Password" autocomplete="current-password">
@@ -49,7 +48,7 @@ button.danger{background:transparent;color:#c0392b;border:1px solid var(--line)}
 
 <div id="appView" hidden>
   <header>
-    <h1>🏦 Incoming orders</h1>
+    <h1>Incoming orders</h1>
     <div>
       <span class="live" id="live">connecting…</span>
       <button class="ghost" id="snd">🔔 Sound off</button>
@@ -132,6 +131,7 @@ function draw(fresh=[]){
     m.textContent="Deliver to: "+o.room+" · "+new Date(o.at).toLocaleString([],{dateStyle:"short",timeStyle:"short"});
     el.appendChild(m);
     if(o.note){const n=document.createElement("div");n.className="meta";n.textContent="Note: "+o.note;el.appendChild(n)}
+    if(o.pin){const q=document.createElement("div");q.className="meta";q.textContent="PIN: "+o.pin;el.appendChild(q)}
     const ac=document.createElement("div");ac.className="actions";
     if(o.status==="ordered"){const b=document.createElement("button");b.className="ghost";b.textContent="Start preparing";b.onclick=()=>setStatus(o.id,"preparing");ac.appendChild(b)}
     if(o.status!=="delivered"){const b=document.createElement("button");b.textContent="Mark delivered";b.onclick=()=>setStatus(o.id,"delivered");ac.appendChild(b)}
@@ -152,8 +152,8 @@ function listen(){
     orders=list;draw(fresh.map(o=>o.id));
     if(fresh.length){
       beep();fresh.forEach(notify);
-      document.title="("+fresh.length+") New order! | Home Bank";
-      setTimeout(()=>{document.title="Banker | Home Bank"},4000);
+      document.title="("+fresh.length+") New order! | Black Bank";
+      setTimeout(()=>{document.title="Banker | Black Bank"},4000);
     }
   },err=>{
     if(err.code==="permission-denied"){
