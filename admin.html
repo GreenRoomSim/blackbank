@@ -80,7 +80,7 @@ const btn=(t,c,f)=>{const b=h("button",c||"",t);if(f)b.onclick=f;return b};
 const num=ph=>{const i=h("input");i.type="number";i.min="0";i.step="0.01";i.placeholder=ph;return i};
 const toast=m=>{const t=$("toast");t.textContent=m;t.className="show";clearTimeout(toast.t);toast.t=setTimeout(()=>t.className="",3800)};
 const when=t=>new Date(t).toLocaleString([],{dateStyle:"short",timeStyle:"short"});
-const STEP=20,LOANRATE=0.05;
+const STEP=5,LOANRATE=0.05;
 const FEATURES=[["withdrawals","Cash withdrawals"],["deposits","Cash deposits"],["loans","Loan requests"],["upgrades","Card upgrades"],["replacements","Card replacements"]];
 const toP=c=>Math.round(c*RATE/100),toC=p=>Math.round(p*100/RATE);
 const TIERS={"Silver":{fee:0,int:0,wd:0.05},"Silver Max":{fee:250,int:0.02,wd:0.025},"Gold":{fee:600,int:0.02,wd:0,loan:1000},"Black":{fee:1000,int:0.03,wd:0,loan:2500}};
