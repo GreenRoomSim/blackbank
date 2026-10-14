@@ -1,7 +1,6 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // CHANGE THE EMAIL BELOW to your banker login (used in both places).
     function isBanker() {
       return request.auth != null && request.auth.token.email == 'spenloymil@gmail.com';
     }
@@ -25,7 +24,38 @@ service cloud.firestore {
       allow get: if true;
       allow list, delete: if isBanker();
       allow create, update: if isBanker() && request.resource.data.balance is number
-        && request.resource.data.balance >= 0;
+        && request.resource.data.balance >= 0
+        && request.resource.data.get('status', 'active') in ['active','frozen','locked','closed'];
+    }
+
+    // Customer requests live under their account (the account id is secret).
+    match /accounts/{id}/requests/{rid} {
+      allow get, list: if true;
+      allow create: if exists(/databases/$(database)/documents/accounts/$(id))
+        && request.resource.data.keys().hasOnly(['type','note','status','at','to','amount'])
+        && request.resource.data.type in ['replacement','upgrade','loan']
+        && request.resource.data.status == 'pending'
+        && request.resource.data.note is string && request.resource.data.note.size() <= 140
+        && request.resource.data.at is number
+        && (!('to' in request.resource.data) || request.resource.data.to in ['Silver Max','Gold','Black'])
+        && (!('amount' in request.resource.data) || (request.resource.data.amount is number
+            && request.resource.data.amount > 0 && request.resource.data.amount <= 100000000));
+      allow update, delete: if isBanker();
+    }
+    match /{path=**}/requests/{rid} {
+      allow read: if isBanker();
+    }
+
+    // The bank's money: funds ($ cents) and cash reserve (pence). Neither can go below zero.
+    match /bank/state {
+      allow read: if isBanker();
+      allow write: if isBanker() && request.resource.data.funds is number && request.resource.data.funds >= 0
+        && request.resource.data.cash is number && request.resource.data.cash >= 0;
+    }
+
+    // Every movement of money is recorded here.
+    match /ledger/{id} {
+      allow read, write: if isBanker();
     }
   }
 }
