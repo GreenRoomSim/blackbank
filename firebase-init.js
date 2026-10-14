@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, increment, writeBatch, collection, collectionGroup, query, orderBy }
+import { getFirestore, doc, setDoc, updateDoc, deleteDoc, onSnapshot, increment, writeBatch, collection, collectionGroup, query, orderBy, where, limit }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -9,7 +9,7 @@ export const configured = !String(firebaseConfig.apiKey).startsWith("PASTE");
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
-export { doc, setDoc, updateDoc, deleteDoc, onSnapshot, increment, writeBatch, collection, collectionGroup, query, orderBy,
+export { doc, setDoc, updateDoc, deleteDoc, onSnapshot, increment, writeBatch, collection, collectionGroup, query, orderBy, where, limit,
          signInWithEmailAndPassword, onAuthStateChanged, signOut };
 
 // Account helpers: an account's document id is a hash of (number + PIN), so a PIN
@@ -20,4 +20,6 @@ export async function accountKey(acct, pin) {
   return Array.from(new Uint8Array(h), b => b.toString(16).padStart(2, "0")).join("");
 }
 export const fmtAcct = a => String(a).replace(/\D/g, "").replace(/(.{4})/g, "$1 ").trim();
-export const money = p => "£" + (p / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const money = p => "$" + (p / 100).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+export const gbp = p => "£" + (p / 100).toFixed(2);
+export const RATE = 5; // pence per $1.00 (fixed for now)
