@@ -3,86 +3,201 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Balance | Black Bank</title>
+<title>Account | Black Bank</title>
 <style>
-:root{--bg:#070708;--card:#111114;--ink:#f4f1ea;--mute:#8d8a82;--line:#2a2a2e;--accent:#c9a24b}
+:root{--bg:#070708;--card:#111114;--ink:#f4f1ea;--mute:#8d8a82;--line:#2a2a2e;--accent:#c9a24b;--ok:#6fcf97;--bad:#e0897a}
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -10%,#2a2212,var(--bg) 60%) fixed;color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-main{max-width:440px;margin:0 auto;padding:78px 16px 40px}
+main{max-width:440px;margin:0 auto;padding:78px 16px 50px}
 h1{margin:0 0 4px;font-size:1.4rem;letter-spacing:7px;font-weight:600;font-family:Georgia,serif;text-align:center}
+h2{font-size:1rem;margin:0 0 10px;font-family:Georgia,serif;font-weight:500;letter-spacing:1px}
 .sub{color:var(--mute);text-align:center;margin-bottom:22px;font-size:.9rem}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
-label{display:block;font-size:.85rem;color:var(--mute);margin:10px 0 4px}
-input{width:100%;font:inherit;font-size:1.1rem;letter-spacing:2px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px}
-button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:13px;background:var(--accent);color:#0b0b0c;font-weight:700;width:100%;margin-top:16px}
-button:disabled{opacity:.5}
-.err{color:#e0897a;text-align:center;font-size:.9rem;min-height:1.3em;margin-top:10px}
-.acct{display:none;animation:in .5s ease both}
-@keyframes in{from{opacity:0;transform:translateY(18px)}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-top:14px}
+label{display:block;font-size:.85rem;color:var(--mute);margin:4px 0}
+input,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+#an{font-size:1.1rem;letter-spacing:2px}
+button{font:inherit;cursor:pointer;border:0;border-radius:12px;padding:12px;background:var(--accent);color:#0b0b0c;font-weight:700}
+button:disabled{opacity:.4;cursor:default}
+.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+.pd{display:flex;gap:14px;justify-content:center;margin:14px 0}
+.pd i{width:15px;height:15px;border-radius:50%;border:2px solid var(--mute);transition:.15s}.pd i.f{background:var(--accent);border-color:var(--accent);transform:scale(1.15)}
+.pd.shake{animation:shake .4s}@keyframes shake{25%{transform:translateX(-9px)}75%{transform:translateX(9px)}}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:260px;margin:0 auto}
+.pad button{background:transparent;color:var(--ink);border:1px solid var(--line);font-size:1.3rem;padding:13px 0;font-weight:400}.pad button:active{background:var(--line)}
+.err{color:var(--bad);text-align:center;font-size:.9rem;min-height:1.3em;margin-top:12px}
+#welcome{position:fixed;inset:0;z-index:70;background:radial-gradient(circle at 50% 40%,#2a2212,var(--bg) 65%);display:none;place-items:center;text-align:center}
+#welcome small{display:block;letter-spacing:6px;text-transform:uppercase;color:var(--accent);font-size:.75rem;animation:up 1s both}
+#welcome b{display:block;font-family:Georgia,serif;font-weight:400;font-size:2.6rem;margin:12px 0;animation:up 1s .3s both}
+#welcome i{display:block;height:1px;background:var(--accent);margin:0 auto;animation:grow 1.4s .5s both}
+@keyframes up{from{opacity:0;transform:translateY(16px)}}@keyframes grow{from{width:0}to{width:120px}}
+.acct{display:none;animation:up .6s both}
+.hi{font-family:Georgia,serif;font-size:1.3rem;text-align:center;margin-bottom:16px}
 .card{aspect-ratio:1.586;border-radius:18px;padding:18px;position:relative;overflow:hidden;color:var(--fg);background:linear-gradient(135deg,var(--g1),var(--g2));box-shadow:0 18px 40px rgba(0,0,0,.5)}
-.card[data-tier=silver]{--g1:#8f98a3;--g2:#e3e7ec;--fg:#1d2430}
-.card[data-tier=silvermax]{--g1:#5c6f8c;--g2:#dfe9f7;--fg:#101a2c}
-.card[data-tier=gold]{--g1:#a87908;--g2:#f0cf6a;--fg:#2b1d00}
-.card[data-tier=black]{--g1:#06060a;--g2:#3a3a48;--fg:#f2f2f6}
-.card .b{font-weight:800;letter-spacing:2px;font-size:.8rem}
-.card .n{position:absolute;left:18px;bottom:50px;letter-spacing:2px}.card .h{position:absolute;left:18px;bottom:18px;font-size:.85rem;letter-spacing:1.5px}
-.card .t{position:absolute;right:18px;bottom:18px;font-weight:700;font-size:.85rem}
+.card[data-tier=silver]{--g1:#8f98a3;--g2:#e3e7ec;--fg:#1d2430}.card[data-tier=silvermax]{--g1:#5c6f8c;--g2:#dfe9f7;--fg:#101a2c}
+.card[data-tier=gold]{--g1:#a87908;--g2:#f0cf6a;--fg:#2b1d00}.card[data-tier=black]{--g1:#06060a;--g2:#3a3a48;--fg:#f2f2f6}
+.card .b{font-weight:800;letter-spacing:2px;font-size:.8rem}.card .n{position:absolute;left:18px;bottom:50px;letter-spacing:2px}
+.card .h{position:absolute;left:18px;bottom:18px;font-size:.85rem;letter-spacing:1.5px}.card .t{position:absolute;right:18px;bottom:18px;font-weight:700;font-size:.85rem}
 .bal{text-align:center;margin:22px 0 4px;font-size:2.6rem;font-weight:600;font-family:Georgia,serif;color:var(--accent)}
 .lbl{text-align:center;color:var(--mute);font-size:.8rem;letter-spacing:3px;text-transform:uppercase}
 .frz{display:none;background:rgba(224,137,122,.12);border:1px solid #5a2f28;color:#e0a89c;border-radius:12px;padding:12px;margin-bottom:14px;text-align:center;font-size:.9rem}
-.out{background:transparent;border:1px solid var(--line);color:var(--mute);margin-top:18px}
+.rv{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:.92rem}.rv:first-of-type{border-top:0}.rv span:first-child{color:var(--mute)}
+.perk{color:var(--accent);font-size:.9rem;padding:3px 0}
+.svcs{display:grid;gap:8px}.svcs button{text-align:left;padding:13px 14px}.svcs small{display:block;font-weight:400;opacity:.75;margin-top:2px}
+.msg{color:var(--ok);font-size:.88rem;margin-top:10px;min-height:1.2em}
+.rf{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}.rf .row{display:flex;gap:8px}.rf .row button{flex:1}
+.req{border-top:1px solid var(--line);padding:9px 0}.req:first-of-type{border-top:0}
+.row2{display:flex;justify-content:space-between;gap:8px}.meta{color:var(--mute);font-size:.82rem}
+.pill{font-size:.72rem;padding:3px 9px;border-radius:99px;border:1px solid var(--line);white-space:nowrap}
+.p-pending{color:var(--accent)}.p-approved{color:var(--ok)}.p-declined{color:var(--bad)}
+.out{width:100%;margin-top:18px;background:transparent;border:1px solid var(--line);color:var(--mute)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </head>
 <body>
 <main>
-  <h1>BLACK BANK</h1><div class="sub">Account balance</div>
+  <h1>BLACK BANK</h1><div class="sub">Sign in to your account</div>
   <div class="panel" id="form">
     <label for="an">Account number</label>
     <input id="an" inputmode="numeric" autocomplete="off" placeholder="0000 2026" maxlength="19">
-    <label for="pn">PIN</label>
-    <input id="pn" type="password" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="••••">
-    <button id="go">View balance</button>
+    <label>PIN</label>
+    <div class="pd" id="pd"><i></i><i></i><i></i><i></i></div>
+    <div class="pad" id="pad"></div>
     <div class="err" id="err"></div>
   </div>
+  <div id="welcome"><div><small>Welcome back</small><b id="wt"></b><i></i></div></div>
   <div class="acct" id="acct">
+    <div class="hi" id="hi"></div>
     <div class="frz" id="frz">This account is frozen. Transactions are on hold. Please contact your banker.</div>
     <div class="card" id="card"><div class="b">BLACK BANK</div><div class="n" id="cn"></div><div class="h" id="ch"></div><div class="t" id="ct"></div></div>
     <div class="bal" id="bal">£0.00</div><div class="lbl">Available balance</div>
+    <div class="panel"><h2>Your card</h2><div id="det"></div></div>
+    <div class="panel"><h2>Services</h2>
+      <div class="svcs">
+        <button class="ghost" data-t="replacement">Replace my card</button>
+        <button class="ghost" data-t="upgrade">Upgrade my card</button>
+        <button class="ghost" data-t="loan">Request a loan</button>
+      </div>
+      <div id="rf"></div><div class="msg" id="rm"></div>
+    </div>
+    <div class="panel" id="rp" hidden><h2>My requests</h2><div id="rl"></div></div>
     <button class="out" id="out">Sign out</button>
   </div>
 </main>
 <script type="module">
-import { db, configured, doc, onSnapshot, accountKey, fmtAcct, money } from "./firebase-init.js";
+import { db, configured, doc, setDoc, onSnapshot, collection, accountKey, fmtAcct, money } from "./firebase-init.js";
 const $=id=>document.getElementById(id);
-let unsub=null,shown=0,fails=0,lockUntil=0;
-$("an").oninput=e=>{e.target.value=fmtAcct(e.target.value.replace(/\D/g,"").slice(0,16))};
-function count(to){const from=shown,t0=performance.now();shown=to;
-  (function f(t){const k=Math.min(1,(t-t0)/700),e=1-Math.pow(1-k,3);$("bal").textContent=money(Math.round(from+(to-from)*e));if(k<1)requestAnimationFrame(f)})(t0)}
-async function open(){
-  const a=$("an").value.replace(/\D/g,""),p=$("pn").value;
+const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
+const INFO={"Silver":{fee:"£0.00",int:"0%",wd:"5%",perks:["Free to hold"]},
+ "Silver Max":{fee:"£2.50",int:"2%",wd:"2.5%",perks:["Reduced card replacement fee"]},
+ "Gold":{fee:"£6.00",int:"2%",wd:"None",perks:["Free card replacements","Access to loan services"]},
+ "Black":{fee:"£10.00",int:"3%",wd:"None",perks:["Free card replacements","Exclusive services","Highest loan limit"]}};
+const ORDER=["Silver","Silver Max","Gold","Black"],LOAN=["Gold","Black"];
+let pin="",unsubA=null,unsubR=null,key=null,cur=null,reqs=[],shown=0,fails=0,lockUntil=0,live=false,revealed=false;
+
+/* ---- keypad sign-in ---- */
+["1","2","3","4","5","6","7","8","9","","0","⌫"].forEach(d=>{const b=el("button","",d);if(!d)b.style.visibility="hidden";b.onclick=()=>press(d);$("pad").appendChild(b)});
+function dots(){[...$("pd").children].forEach((i,n)=>i.className=n<pin.length?"f":"")}
+function press(d){
+  if(live)return;
   $("err").textContent="";
-  if(Date.now()<lockUntil){$("err").textContent="Too many attempts. Please wait a moment.";return}
-  if((a.length!==8&&a.length!==16)||p.length!==4){$("err").textContent="Enter your account number and 4-digit PIN.";return}
-  if(!configured){$("err").textContent="Not available yet.";return}
-  $("go").disabled=true;
-  const key=await accountKey(a,p);
-  let first=true;
-  unsub=onSnapshot(doc(db,"accounts",key),s=>{
-    if(!s.exists()){
-      if(first){fails++;if(fails>=3){lockUntil=Date.now()+30000;fails=0}$("err").textContent="Account number or PIN is incorrect.";$("go").disabled=false;if(unsub)unsub();unsub=null}
-      else{close();$("err").textContent="This account has been closed."}return}
-    const d=s.data();
-    const st=d.status||"active";
-    if(st==="locked"||st==="closed"){close();$("err").textContent=st==="closed"?"This account has been closed.":"This account is locked. Please contact your banker.";return}
-    $("frz").style.display=st==="frozen"?"block":"none";
-    if(first){first=false;fails=0;$("form").style.display="none";$("acct").style.display="block";
-      $("card").dataset.tier=d.tier.toLowerCase().replace(/\s/g,"");$("cn").textContent="•••• "+d.acct.slice(-4);
-      $("ch").textContent=d.name.toUpperCase();$("ct").textContent=d.tier;shown=0}
-    count(d.balance);
-  },()=>{$("err").textContent="Couldn't reach the bank.";$("go").disabled=false});
+  if(d==="⌫")pin=pin.slice(0,-1);else if(pin.length<4)pin+=d;
+  dots();if(pin.length===4)signIn();
 }
-function close(){if(unsub)unsub();unsub=null;$("acct").style.display="none";$("form").style.display="block";$("go").disabled=false;$("pn").value="";$("an").value=""}
-$("go").onclick=open;$("pn").onkeydown=e=>{if(e.key==="Enter")open()};$("out").onclick=close;
+document.addEventListener("keydown",e=>{
+  if(live||e.target.tagName==="INPUT")return;
+  if(/^\d$/.test(e.key))press(e.key);else if(e.key==="Backspace")press("⌫");
+});
+$("an").oninput=e=>{e.target.value=fmtAcct(e.target.value.replace(/\D/g,"").slice(0,16))};
+function fail(m){$("err").textContent=m;pin="";dots();const p=$("pd");p.classList.remove("shake");void p.offsetWidth;p.classList.add("shake")}
+
+async function signIn(){
+  const a=$("an").value.replace(/\D/g,"");
+  if(Date.now()<lockUntil)return fail("Too many attempts. Please wait a moment.");
+  if(a.length!==8&&a.length!==16)return fail("Enter your account number first.");
+  if(!configured)return fail("Not available yet.");
+  key=await accountKey(a,pin);
+  let first=true;
+  unsubA=onSnapshot(doc(db,"accounts",key),s=>{
+    if(!s.exists()){
+      if(first){fails++;if(fails>=3){lockUntil=Date.now()+30000;fails=0}if(unsubA)unsubA();unsubA=null;fail("Account number or PIN is incorrect.")}
+      else out("This account has been closed.");
+      return}
+    const d=s.data(),st=d.status||"active";
+    if(st==="locked"||st==="closed")return out(st==="closed"?"This account has been closed.":"This account is locked. Please contact your banker.");
+    cur=d;
+    if(first){first=false;fails=0;enter(d)}
+    render(d,st);
+  },()=>fail("Couldn't reach the bank."));
+}
+const first=n=>{const w=n.trim().split(/\s+/)[0];return w.charAt(0).toUpperCase()+w.slice(1)};
+function enter(d){
+  live=true;$("form").style.display="none";$("wt").textContent=first(d.name);$("welcome").style.display="grid";
+  listenReqs();
+  setTimeout(()=>{$("welcome").style.display="none";$("acct").style.display="block";revealed=true;count(cur.balance)},1900);
+}
+function out(m){
+  if(unsubA)unsubA();if(unsubR)unsubR();unsubA=unsubR=null;
+  live=revealed=false;pin="";shown=0;cur=null;reqs=[];dots();closeForm();$("rm").textContent="";
+  $("acct").style.display="none";$("welcome").style.display="none";$("form").style.display="block";$("an").value="";$("err").textContent=m||"";
+}
+$("out").onclick=()=>out("");
+
+/* ---- account view ---- */
+function count(to){const from=shown,t0=performance.now();shown=to;
+  (function f(t){const k=Math.min(1,(t-t0)/800),e=1-Math.pow(1-k,3);$("bal").textContent=money(Math.round(from+(to-from)*e));if(k<1)requestAnimationFrame(f)})(t0)}
+function render(d,st){
+  const h=new Date().getHours(),g=h<12?"Good morning":h<18?"Good afternoon":"Good evening";
+  $("hi").textContent=g+", "+first(d.name);
+  $("card").dataset.tier=d.tier.toLowerCase().replace(/\s/g,"");$("cn").textContent="•••• "+d.acct.slice(-4);
+  $("ch").textContent=d.name.toUpperCase();$("ct").textContent=d.tier;
+  $("frz").style.display=st==="frozen"?"block":"none";
+  if(revealed)count(d.balance);
+  const f=INFO[d.tier]||INFO.Silver,box=$("det");box.textContent="";
+  [["Account",fmtAcct(d.acct)],["Card",d.tier],["Status",st==="frozen"?"Frozen":"Active"],["Monthly fee",f.fee],["Interest on balance",f.int],["Withdrawal fee",f.wd]]
+    .forEach(([a,b])=>{const r=el("div","rv");r.append(el("span","",a),el("span","",b));box.appendChild(r)});
+  f.perks.forEach(p=>box.appendChild(el("div","perk","✦ "+p)));
+  const sv=document.querySelectorAll(".svcs button");
+  sv[1].disabled=d.tier==="Black";sv[2].disabled=!LOAN.includes(d.tier);
+  sv[2].textContent=LOAN.includes(d.tier)?"Request a loan":"Request a loan (Gold and Black)";
+}
+
+/* ---- requests ---- */
+const msg=t=>{$("rm").textContent=t};
+const rid=()=>Array.from(crypto.getRandomValues(new Uint8Array(10)),b=>b.toString(16).padStart(2,"0")).join("");
+function closeForm(){$("rf").textContent=""}
+document.querySelectorAll(".svcs button").forEach(b=>b.onclick=()=>openForm(b.dataset.t));
+function openForm(type){
+  msg("");closeForm();
+  if(reqs.some(r=>r.type===type&&r.status==="pending"))return msg("You already have a pending request of that kind.");
+  const f=el("div","rf");let sel,amt;
+  f.appendChild(el("h2","",{replacement:"Replace my card",upgrade:"Upgrade my card",loan:"Request a loan"}[type]));
+  if(type==="upgrade"){f.appendChild(el("label","","Upgrade to"));sel=el("select");
+    ORDER.slice(ORDER.indexOf(cur.tier)+1).forEach(t=>{const o=el("option","",t+" ("+INFO[t].fee+" / month)");o.value=t;sel.appendChild(o)});f.appendChild(sel)}
+  if(type==="loan"){f.appendChild(el("label","","Amount (£)"));amt=el("input");amt.type="number";amt.min="1";amt.step="0.01";f.appendChild(amt)}
+  f.appendChild(el("label","","Note for your banker (optional)"));const note=el("input");note.maxLength=140;f.appendChild(note);
+  const row=el("div","row"),go=el("button","","Send request"),no=el("button","ghost","Cancel");no.onclick=closeForm;
+  go.onclick=async()=>{
+    const data={type,note:note.value.trim(),status:"pending",at:Date.now()};
+    if(type==="upgrade")data.to=sel.value;
+    if(type==="loan"){const p=Math.round(parseFloat(amt.value)*100);if(!(p>0))return msg("Enter a loan amount.");data.amount=p}
+    go.disabled=true;
+    try{await setDoc(doc(db,"accounts",key,"requests",rid()),data);closeForm();msg("Request sent. Your banker will review it.")}
+    catch(e){go.disabled=false;msg("Couldn't send your request.")}
+  };
+  row.append(go,no);f.appendChild(row);$("rf").appendChild(f);
+}
+function listenReqs(){
+  unsubR=onSnapshot(collection(db,"accounts",key,"requests"),s=>{
+    reqs=s.docs.map(d=>d.data()).sort((a,b)=>b.at-a.at);
+    const box=$("rl");box.textContent="";$("rp").hidden=!reqs.length;
+    reqs.forEach(r=>{
+      const t=r.type==="upgrade"?"Upgrade to "+r.to:r.type==="loan"?"Loan of "+money(r.amount):"Replacement card";
+      const d=el("div","req"),row=el("div","row2");
+      row.append(el("strong","",t),el("span","pill p-"+r.status,r.status[0].toUpperCase()+r.status.slice(1)));
+      d.append(row,el("div","meta",new Date(r.at).toLocaleString([],{dateStyle:"short",timeStyle:"short"})));box.appendChild(d);
+    });
+  },()=>{});
+}
 </script>
 <script src="nav.js"></script>
 </body>

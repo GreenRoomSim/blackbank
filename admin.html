@@ -59,6 +59,8 @@ button.danger{background:transparent;color:#c0392b;border:1px solid var(--line)}
   <main>
     <div class="tabs" id="tabs"></div>
     <div class="panel" id="list"></div>
+    <h2 id="rh" style="margin:22px 0 0;font-size:1.1rem">Requests</h2>
+    <div class="panel" id="reqs"></div>
     <h2 style="margin:22px 0 0;font-size:1.1rem">Bank funds</h2>
     <div class="panel">
       <strong id="funds" style="font-size:1.8rem;color:var(--accent)">£0.00</strong>
@@ -73,7 +75,7 @@ button.danger{background:transparent;color:#c0392b;border:1px solid var(--line)}
 
 <script>window.addEventListener("error",function(e){var d=document.createElement("div");d.style.cssText="padding:24px;color:#e0a89c;font-family:system-ui;line-height:1.5";d.textContent="This page couldn't load: "+(e.message||"script error")+". Make sure every file was uploaded to GitHub, then hard refresh.";document.body.appendChild(d)});</script>
 <script type="module">
-import { db, auth, configured, doc, setDoc, increment, writeBatch, updateDoc, deleteDoc, accountKey, fmtAcct, money, onSnapshot, collection, query, orderBy,
+import { db, auth, configured, doc, setDoc, increment, writeBatch, updateDoc, deleteDoc, accountKey, fmtAcct, money, onSnapshot, collection, collectionGroup, query, orderBy,
          signInWithEmailAndPassword, onAuthStateChanged, signOut } from "./firebase-init.js";
 
 const $=id=>document.getElementById(id);
@@ -171,6 +173,48 @@ function adjust(a,sign,input){
   if(fee)b.set(fundsRef(),{balance:increment(fee)},{merge:true});
   b.commit().then(()=>{input.value=""}).catch(()=>alert("Couldn't update the balance."));
 }
+/* ---------- customer requests ---------- */
+let reqs=[],unsubQ=null;
+const RL={replacement:"Replacement card",upgrade:"Card upgrade",loan:"Loan request"};
+const reqText=r=>r.type==="upgrade"?"Upgrade to "+r.to:r.type==="loan"?"Loan of "+money(r.amount||0):RL[r.type];
+function resolve(r,status){
+  const b=writeBatch(db);
+  b.update(doc(db,"accounts",r.acctId,"requests",r.id),{status});
+  if(status==="approved"&&r.type==="upgrade")b.update(doc(db,"accounts",r.acctId),{tier:r.to});
+  b.commit().catch(()=>alert("Couldn't update that request."));
+}
+function drawReqs(){
+  const box=$("reqs");box.textContent="";
+  const rows=reqs.filter(r=>accts.some(a=>a.id===r.acctId)).sort((x,y)=>(x.status==="pending"?0:1)-(y.status==="pending"?0:1)||y.at-x.at).slice(0,30);
+  const pend=rows.filter(r=>r.status==="pending").length;
+  $("rh").textContent="Requests"+(pend?" ("+pend+" pending)":"");
+  if(!rows.length){const e=document.createElement("div");e.className="empty";e.textContent="No requests.";box.appendChild(e);return}
+  rows.forEach(r=>{
+    const a=accts.find(x=>x.id===r.acctId);
+    const el=document.createElement("div");el.className="order";
+    const row=document.createElement("div");row.className="row";
+    const t=document.createElement("strong");t.textContent=reqText(r);
+    const p=document.createElement("span");p.className="pill "+(r.status==="pending"?"s-ordered":r.status==="approved"?"s-delivered":"");p.textContent=r.status;
+    row.append(t,p);el.appendChild(row);
+    const m=document.createElement("div");m.className="meta";
+    m.textContent=a.name+" · "+a.tier+" · "+fmtAcct(a.acct)+" · "+new Date(r.at).toLocaleString([],{dateStyle:"short",timeStyle:"short"});el.appendChild(m);
+    if(r.note){const n=document.createElement("div");n.className="meta";n.textContent="Note: "+r.note;el.appendChild(n)}
+    if(r.status==="pending"){
+      const ac=document.createElement("div");ac.className="actions";
+      const y=document.createElement("button");y.textContent="Approve";y.onclick=()=>resolve(r,"approved");
+      const n=document.createElement("button");n.className="danger";n.textContent="Decline";n.onclick=()=>resolve(r,"declined");
+      ac.append(y,n);el.appendChild(ac);
+    }
+    box.appendChild(el);
+  });
+}
+function listenReqs(){
+  if(unsubQ)unsubQ();
+  unsubQ=onSnapshot(collectionGroup(db,"requests"),snap=>{
+    reqs=snap.docs.map(d=>({id:d.id,acctId:d.ref.parent.parent.id,...d.data()}));drawReqs();
+  },()=>{});
+}
+
 /* ---------- bank funds, fees, interest ---------- */
 const TIERS={"Silver":{fee:0,int:0,wd:0.05},"Silver Max":{fee:250,int:0.02,wd:0.025},"Gold":{fee:600,int:0.02,wd:0},"Black":{fee:1000,int:0.03,wd:0}};
 let funds=0,unsubF=null;
@@ -280,7 +324,7 @@ $("q").oninput=drawAccts;
 function listenAccts(){
   if(unsubA)unsubA();
   unsubA=onSnapshot(collection(db,"accounts"),snap=>{
-    accts=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.created-a.created);
+    accts=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.created-a.created);drawReqs();
     if(document.activeElement&&document.activeElement.type==="number")return;
     drawAccts();
   },()=>{});
@@ -310,8 +354,8 @@ function listen(){
 }
 
 /* ---------- login ---------- */
-function showApp(){$("loginView").hidden=true;$("appView").hidden=false;listen();listenAccts();listenFunds()}
-function showLogin(){if(unsub){unsub();unsub=null}if(unsubA){unsubA();unsubA=null}if(unsubF){unsubF();unsubF=null}$("appView").hidden=true;$("loginView").hidden=false}
+function showApp(){$("loginView").hidden=true;$("appView").hidden=false;listen();listenAccts();listenFunds();listenReqs()}
+function showLogin(){if(unsub){unsub();unsub=null}if(unsubA){unsubA();unsubA=null}if(unsubF){unsubF();unsubF=null}if(unsubQ){unsubQ();unsubQ=null}$("appView").hidden=true;$("loginView").hidden=false}
 async function login(){
   $("err").textContent="";
   try{await signInWithEmailAndPassword(auth,$("em").value.trim(),$("pw").value);$("pw").value=""}
