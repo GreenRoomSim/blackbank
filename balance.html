@@ -89,9 +89,9 @@ const $=id=>document.getElementById(id);
 const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
 const INFO={"Silver":{fee:"$0.00",int:"0%",wd:"5%",perks:["Free to hold"]},
  "Silver Max":{fee:"$2.50",int:"2%",wd:"2.5%",perks:["Reduced card replacement fee"]},
- "Gold":{fee:"$6.00",int:"2%",wd:"None",perks:["Free card replacements","Access to loan services"]},
- "Black":{fee:"$10.00",int:"3%",wd:"None",perks:["Free card replacements","Exclusive services","Highest loan limit"]}};
-const ORDER=["Silver","Silver Max","Gold","Black"],LOAN=["Gold","Black"];
+ "Gold":{fee:"$6.00",int:"2%",wd:"None",perks:["Free card replacements","Loans up to $10.00"]},
+ "Black":{fee:"$10.00",int:"3%",wd:"None",perks:["Free card replacements","Exclusive services","Loans up to $25.00 (highest limit)"]}};
+const ORDER=["Silver","Silver Max","Gold","Black"],LOAN={"Gold":1000,"Black":2500};
 let pin="",unsubA=null,unsubR=null,key=null,cur=null,reqs=[],shown=0,fails=0,lockUntil=0,live=false,revealed=false;
 
 /* ---- keypad sign-in ---- */
@@ -157,8 +157,8 @@ function render(d,st){
     .forEach(([a,b])=>{const r=el("div","rv");r.append(el("span","",a),el("span","",b));box.appendChild(r)});
   f.perks.forEach(p=>box.appendChild(el("div","perk","✦ "+p)));
   const sv=document.querySelectorAll(".svcs button");
-  sv[1].disabled=d.tier==="Black";sv[2].disabled=!LOAN.includes(d.tier);
-  sv[2].textContent=LOAN.includes(d.tier)?"Request a loan":"Request a loan (Gold and Black)";
+  sv[1].disabled=d.tier==="Black";sv[2].disabled=!LOAN[d.tier];
+  sv[2].textContent=LOAN[d.tier]?"Request a loan (up to "+money(LOAN[d.tier])+")":"Request a loan (Gold and Black)";
 }
 
 /* ---- requests ---- */
@@ -173,13 +173,13 @@ function openForm(type){
   f.appendChild(el("h2","",{replacement:"Replace my card",upgrade:"Upgrade my card",loan:"Request a loan"}[type]));
   if(type==="upgrade"){f.appendChild(el("label","","Upgrade to"));sel=el("select");
     ORDER.slice(ORDER.indexOf(cur.tier)+1).forEach(t=>{const o=el("option","",t+" ("+INFO[t].fee+" / month)");o.value=t;sel.appendChild(o)});f.appendChild(sel)}
-  if(type==="loan"){f.appendChild(el("label","","Amount ($)"));amt=el("input");amt.type="number";amt.min="1";amt.step="0.01";f.appendChild(amt)}
+  if(type==="loan"){f.appendChild(el("label","","Amount ($, up to "+money(LOAN[cur.tier]||0)+")"));amt=el("input");amt.type="number";amt.min="0.01";amt.step="0.01";f.appendChild(amt)}
   f.appendChild(el("label","","Note for your banker (optional)"));const note=el("input");note.maxLength=140;f.appendChild(note);
   const row=el("div","row"),go=el("button","","Send request"),no=el("button","ghost","Cancel");no.onclick=closeForm;
   go.onclick=async()=>{
     const data={type,note:note.value.trim(),status:"pending",at:Date.now()};
     if(type==="upgrade")data.to=sel.value;
-    if(type==="loan"){const p=Math.round(parseFloat(amt.value)*100);if(!(p>0))return msg("Enter a loan amount.");data.amount=p}
+    if(type==="loan"){const p=Math.round(parseFloat(amt.value)*100);if(!(p>0))return msg("Enter a loan amount.");if(p>(LOAN[cur.tier]||0))return msg("The most you can borrow on a "+cur.tier+" card is "+money(LOAN[cur.tier]||0)+".");data.amount=p}
     go.disabled=true;
     try{await setDoc(doc(db,"accounts",key,"requests",rid()),data);closeForm();msg("Request sent. Your banker will review it.")}
     catch(e){go.disabled=false;msg("Couldn't send your request.")}
