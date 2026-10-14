@@ -181,11 +181,30 @@ async function renumber(a){
   const ord=orders.find(o=>o.acct===a.acct),pin=ord?ord.pin:prompt("Enter this account's PIN:");if(!pin)return;
   try{
     if(await accountKey(a.acct,pin)!==a.id)return toast("That PIN doesn't match this account.");
-    const {id,...rest}=a;
-    await setDoc(doc(db,"accounts",await accountKey(n,pin)),{...rest,acct:n});
-    if(ord)await updateDoc(doc(db,"orders",ord.id),{acct:n});
-    await deleteDoc(doc(db,"accounts",a.id));location.hash="#accounts";toast("Number changed.");
+    if(await rekey(a,n,pin))toast("Number changed.");
   }catch(e){toast("Couldn't change the number.")}
+}
+/* An account's id is a hash of number + PIN, so changing either means moving it to a new id (with its history). */
+async function rekey(a,acct,pin){
+  const nid=await accountKey(acct,pin);
+  if(nid===a.id){toast("That's the same PIN.");return false}
+  if(accts.some(x=>x.id===nid)){toast("An account with that number and PIN already exists.");return false}
+  const mine=reqs.filter(r=>r.acctId===a.id),hist=accLedger.filter(l=>l.acctId===a.id);
+  if(2*mine.length+hist.length>440){toast("Too much history to move safely.");return false}
+  const b=writeBatch(db),{id,...rest}=a,ord=orders.find(o=>o.acct===a.acct);
+  b.set(doc(db,"accounts",nid),{...rest,acct});
+  mine.forEach(r=>{const {id:rid,acctId,...d}=r;b.set(doc(db,"accounts",nid,"requests",rid),d);b.delete(doc(db,"accounts",a.id,"requests",rid))});
+  hist.forEach(l=>b.update(doc(db,"ledger",l.id),{acctId:nid,acct}));
+  if(ord)b.update(doc(db,"orders",ord.id),{pin,acct});
+  b.delete(doc(db,"accounts",a.id));
+  try{await b.commit();location.hash="#account/"+nid;return true}
+  catch(e){toast("Couldn't move the account. Nothing was changed.");return false}
+}
+async function changePin(a){
+  const p=prompt("New 4-digit PIN for "+a.name+":");if(p===null)return;
+  if(!/^\d{4}$/.test(p.trim()))return toast("A PIN must be exactly 4 digits.");
+  if(!confirm("Change "+a.name+"'s PIN? They will need the new PIN to sign in."))return;
+  if(await rekey(a,a.acct,p.trim()))toast("PIN changed.");
 }
 async function closeAcct(a){
   const bal=a.balance||0;
@@ -322,7 +341,7 @@ function pAcct(p,id){
   const sp=h("div","panel"),sel=h("select");
   [["active","Active"],["frozen","Frozen"],["locked","Locked"]].forEach(([v,l])=>{const o=h("option","",l);o.value=v;if(v===(a.status||"active"))o.selected=true;sel.append(o)});
   sel.onchange=()=>setStatus(a,sel.value);
-  const r4=h("div","row");r4.append(sel,btn("Change number","ghost",()=>renumber(a)),btn("Close account","danger",()=>closeAcct(a)));
+  const r4=h("div","row");r4.append(sel,btn("Change PIN","ghost",()=>changePin(a)),btn("Change number","ghost",()=>renumber(a)),btn("Close account","danger",()=>closeAcct(a)));
   sp.append(h("h2","","Account"),r4);
   p.append(cp,mp,mo,sp,h("h2","","Activity"),feed(accLedger));
 }

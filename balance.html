@@ -120,7 +120,7 @@ async function signIn(){
   unsubA=onSnapshot(doc(db,"accounts",key),s=>{
     if(!s.exists()){
       if(first){fails++;if(fails>=3){lockUntil=Date.now()+30000;fails=0}if(unsubA)unsubA();unsubA=null;fail("Account number or PIN is incorrect.")}
-      else out("This account has been closed.");
+      else out("Your account was updated or closed. Please sign in again, or contact your banker.");
       return}
     const d=s.data(),st=d.status||"active";
     if(st==="locked"||st==="closed")return out(st==="closed"?"This account has been closed.":"This account is locked. Please contact your banker.");
