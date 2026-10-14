@@ -78,12 +78,12 @@ footer{text-align:center;color:var(--mute);font-size:.78rem;padding:0 16px 24px}
 </main>
 <script type="module">
 import { db, configured, doc, setDoc, onSnapshot } from "./firebase-init.js";
-const TIERS=[["Silver","silver","£0.00 / month"],["Silver Max","silvermax","£2.50 / month"],["Gold","gold","£6.00 / month"],["Black","black","£10.00 / month"]];
+const TIERS=[["Silver","silver","$0.00 / month"],["Silver Max","silvermax","$2.50 / month"],["Gold","gold","$6.00 / month"],["Black","black","$10.00 / month"]];
 const INFO=[
- {fee:"£0.00",int:"0%",wd:"5%",perks:["Free to hold"]},
- {fee:"£2.50",int:"2%",wd:"2.5%",perks:["Reduced card replacement fee"]},
- {fee:"£6.00",int:"2%",wd:"None",perks:["Free card replacements","Access to loan services"]},
- {fee:"£10.00",int:"3%",wd:"None",perks:["Free card replacements","Exclusive services","Highest loan limit"]}
+ {fee:"$0.00",int:"0%",wd:"5%",perks:["Free to hold"]},
+ {fee:"$2.50",int:"2%",wd:"2.5%",perks:["Reduced card replacement fee"]},
+ {fee:"$6.00",int:"2%",wd:"None",perks:["Free card replacements","Access to loan services"]},
+ {fee:"$10.00",int:"3%",wd:"None",perks:["Free card replacements","Exclusive services","Highest loan limit"]}
 ];
 function fillInfo(box){
   const f=INFO[S.tier];

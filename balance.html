@@ -69,7 +69,7 @@ button:disabled{opacity:.4;cursor:default}
     <div class="hi" id="hi"></div>
     <div class="frz" id="frz">This account is frozen. Transactions are on hold. Please contact your banker.</div>
     <div class="card" id="card"><div class="b">BLACK BANK</div><div class="n" id="cn"></div><div class="h" id="ch"></div><div class="t" id="ct"></div></div>
-    <div class="bal" id="bal">£0.00</div><div class="lbl">Available balance</div>
+    <div class="bal" id="bal">$0.00</div><div class="lbl">Available balance</div>
     <div class="panel"><h2>Your card</h2><div id="det"></div></div>
     <div class="panel"><h2>Services</h2>
       <div class="svcs">
@@ -87,10 +87,10 @@ button:disabled{opacity:.4;cursor:default}
 import { db, configured, doc, setDoc, onSnapshot, collection, accountKey, fmtAcct, money } from "./firebase-init.js";
 const $=id=>document.getElementById(id);
 const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
-const INFO={"Silver":{fee:"£0.00",int:"0%",wd:"5%",perks:["Free to hold"]},
- "Silver Max":{fee:"£2.50",int:"2%",wd:"2.5%",perks:["Reduced card replacement fee"]},
- "Gold":{fee:"£6.00",int:"2%",wd:"None",perks:["Free card replacements","Access to loan services"]},
- "Black":{fee:"£10.00",int:"3%",wd:"None",perks:["Free card replacements","Exclusive services","Highest loan limit"]}};
+const INFO={"Silver":{fee:"$0.00",int:"0%",wd:"5%",perks:["Free to hold"]},
+ "Silver Max":{fee:"$2.50",int:"2%",wd:"2.5%",perks:["Reduced card replacement fee"]},
+ "Gold":{fee:"$6.00",int:"2%",wd:"None",perks:["Free card replacements","Access to loan services"]},
+ "Black":{fee:"$10.00",int:"3%",wd:"None",perks:["Free card replacements","Exclusive services","Highest loan limit"]}};
 const ORDER=["Silver","Silver Max","Gold","Black"],LOAN=["Gold","Black"];
 let pin="",unsubA=null,unsubR=null,key=null,cur=null,reqs=[],shown=0,fails=0,lockUntil=0,live=false,revealed=false;
 
@@ -173,7 +173,7 @@ function openForm(type){
   f.appendChild(el("h2","",{replacement:"Replace my card",upgrade:"Upgrade my card",loan:"Request a loan"}[type]));
   if(type==="upgrade"){f.appendChild(el("label","","Upgrade to"));sel=el("select");
     ORDER.slice(ORDER.indexOf(cur.tier)+1).forEach(t=>{const o=el("option","",t+" ("+INFO[t].fee+" / month)");o.value=t;sel.appendChild(o)});f.appendChild(sel)}
-  if(type==="loan"){f.appendChild(el("label","","Amount (£)"));amt=el("input");amt.type="number";amt.min="1";amt.step="0.01";f.appendChild(amt)}
+  if(type==="loan"){f.appendChild(el("label","","Amount ($)"));amt=el("input");amt.type="number";amt.min="1";amt.step="0.01";f.appendChild(amt)}
   f.appendChild(el("label","","Note for your banker (optional)"));const note=el("input");note.maxLength=140;f.appendChild(note);
   const row=el("div","row"),go=el("button","","Send request"),no=el("button","ghost","Cancel");no.onclick=closeForm;
   go.onclick=async()=>{

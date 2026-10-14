@@ -6,372 +6,337 @@
 <meta name="robots" content="noindex">
 <title>Banker | Black Bank</title>
 <style>
-:root{--bg:#070708;--card:#111114;--ink:#f4f1ea;--mute:#8d8a82;--line:#2a2a2e;--accent:#c9a24b;--accent-ink:#0b0b0c;--ok:#6fcf97;--warn:#c9a24b}
+:root{--bg:#070708;--card:#111114;--ink:#f4f1ea;--mute:#8d8a82;--line:#2a2a2e;--accent:#c9a24b;--ok:#6fcf97;--bad:#e0897a}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.45}
-header,main{max-width:760px;margin:0 auto;padding:16px}
-header{padding-top:24px;padding-bottom:0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-h1{margin:0;font-size:1.4rem;letter-spacing:6px;font-weight:600;font-family:Georgia,'Times New Roman',serif;text-transform:uppercase}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px}
-input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;margin-top:10px}
-button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:9px 14px;background:var(--accent);color:var(--accent-ink);font-weight:600}
-button.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
-button.danger{background:transparent;color:#c0392b;border:1px solid var(--line)}
-.tabs{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
-.tabs button{background:transparent;color:var(--ink);border:1px solid var(--line)}
-.tabs button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.order{border-top:1px solid var(--line);padding:12px 0}
-.order:first-child{border-top:0}
-.row{display:flex;justify-content:space-between;gap:10px;align-items:center}
-.meta{color:var(--mute);font-size:.88rem;margin-top:2px}
-.pill{font-size:.75rem;padding:3px 9px;border-radius:99px;border:1px solid var(--line);white-space:nowrap}
-.s-ordered{color:var(--warn)}.s-preparing{color:var(--accent)}.s-delivered{color:var(--ok)}
-.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-.new{animation:flash 1.6s ease-out}
-@keyframes flash{from{background:rgba(201,162,75,.3)}to{background:transparent}}
-.err{color:#c0392b;font-size:.9rem;margin-top:8px;min-height:1.2em}
-.empty,.live{color:var(--mute);font-size:.9rem}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:calc(12px + env(safe-area-inset-top,0px)) 20px 12px;background:#0b0b0d;border-bottom:1px solid var(--line)}
+.brand{font-family:Georgia,serif;letter-spacing:6px}.brand small{letter-spacing:3px;color:var(--accent);font-size:.65rem;margin-left:8px;text-transform:uppercase}
+.who{display:flex;gap:8px;align-items:center;color:var(--mute);font-size:.8rem}
+.tabs{display:flex;gap:4px;padding:0 14px;background:#0b0b0d;border-bottom:1px solid var(--line);overflow-x:auto;position:sticky;top:0;z-index:5}
+.tabs a{padding:13px 14px;color:var(--mute);text-decoration:none;font-size:.78rem;letter-spacing:2px;text-transform:uppercase;border-bottom:2px solid transparent;white-space:nowrap}
+.tabs a.on{color:var(--accent);border-color:var(--accent)}
+.badge{background:var(--accent);color:#0b0b0c;border-radius:99px;font-size:.68rem;padding:1px 7px;margin-left:6px;font-weight:700}
+main{max-width:900px;margin:0 auto;padding:22px 16px 70px}
+h1.pt{font-family:Georgia,serif;font-weight:400;font-size:1.6rem;margin:0 0 16px}
+h2{font-family:Georgia,serif;font-weight:500;font-size:1rem;letter-spacing:1px;margin:0 0 10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:14px}
+.tile,.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.panel{margin-bottom:14px}
+.tile small{color:var(--mute);letter-spacing:2px;text-transform:uppercase;font-size:.66rem}
+.tile b{display:block;font-family:Georgia,serif;font-weight:500;font-size:1.6rem;margin-top:6px}.tile.gold b{color:var(--accent)}
+.hint,.meta,.empty{color:var(--mute);font-size:.84rem}
+.check{padding:12px 14px;border-radius:12px;margin-bottom:14px;border:1px solid var(--line);font-size:.9rem}.check.ok{color:var(--ok)}.check.bad{color:var(--bad);border-color:#5a2f28}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+input{width:100%}.row input,.row select{width:auto;flex:1 1 130px}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:9px 14px;background:var(--accent);color:#0b0b0c;font-weight:600}
+button.ghost,button.sm{background:transparent;color:var(--accent);border:1px solid var(--line)}button.sm{padding:5px 10px;font-size:.78rem}
+button.danger{background:transparent;color:var(--bad);border:1px solid var(--line)}button:disabled,input:disabled{opacity:.4;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.item{border-top:1px solid var(--line);padding:12px 0}.item:first-child{border-top:0;padding-top:0}
+.row2{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.pill{font-size:.72rem;padding:3px 9px;border-radius:99px;border:1px solid var(--line);white-space:nowrap;color:var(--mute)}
+.pill.g{color:var(--accent)}.pill.k{color:var(--ok)}.pill.r{color:var(--bad)}
+a.item{display:block;color:inherit;text-decoration:none}a.item:hover strong{color:var(--accent)}
+.back{color:var(--mute);text-decoration:none;font-size:.85rem;display:inline-block;margin-bottom:10px}
+.sub{color:var(--mute);margin:-8px 0 16px}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:#1b1b1f;border:1px solid var(--accent);padding:11px 18px;border-radius:12px;opacity:0;pointer-events:none;transition:.25s;z-index:20;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.err{color:var(--bad);font-size:.9rem;margin-top:8px;min-height:1.2em}
 </style>
 </head>
 <body>
+<script>window.addEventListener("error",function(e){var d=document.createElement("div");d.style.cssText="padding:24px;color:#e0a89c;font-family:system-ui;line-height:1.5";d.textContent="This page couldn't load: "+(e.message||"script error")+". Make sure every file was uploaded to GitHub, then hard refresh.";document.body.appendChild(d)});</script>
 <div id="loginView" hidden>
-  <main style="max-width:420px">
-    <h1>Banker login</h1>
+  <main style="max-width:420px;padding-top:60px">
+    <h1 class="pt" style="letter-spacing:6px;text-align:center">BANKER LOGIN</h1>
     <div class="panel">
       <input id="em" type="email" placeholder="Banker email" autocomplete="username">
-      <input id="pw" type="password" placeholder="Password" autocomplete="current-password">
-      <div style="margin-top:12px"><button id="go" style="width:100%">Log in</button></div>
+      <input id="pw" type="password" placeholder="Password" autocomplete="current-password" style="margin-top:10px">
+      <button id="go" style="width:100%;margin-top:12px">Log in</button>
       <div class="err" id="err"></div>
     </div>
   </main>
 </div>
-
 <div id="appView" hidden>
-  <header>
-    <h1>Incoming orders</h1>
-    <div>
-      <span class="live" id="live">connecting…</span>
-      <button class="ghost" id="snd">🔔 Sound off</button>
-      <button class="ghost" id="ntf">Enable alerts</button>
-      <button class="ghost" id="out">Log out</button>
-    </div>
-  </header>
-  <main>
-    <div class="tabs" id="tabs"></div>
-    <div class="panel" id="list"></div>
-    <h2 id="rh" style="margin:22px 0 0;font-size:1.1rem">Requests</h2>
-    <div class="panel" id="reqs"></div>
-    <h2 style="margin:22px 0 0;font-size:1.1rem">Bank funds</h2>
-    <div class="panel">
-      <strong id="funds" style="font-size:1.8rem;color:var(--accent)">£0.00</strong>
-      <div class="meta">Monthly and withdrawal fees go in. Interest comes out.</div>
-      <div class="actions"><input id="fa" type="number" min="0" step="0.01" placeholder="Amount £" style="width:130px;margin:0"><button id="fadd">Add funds</button><button class="ghost" id="frem">Remove funds</button></div>
-      <div class="actions" style="margin-top:16px"><button id="feeAll">Take Monthly Fee (all)</button><button class="ghost" id="intAll">Add Interest (all)</button></div>
-    </div>
-    <h2 style="margin:22px 0 0;font-size:1.1rem">Accounts</h2>
-    <div class="panel"><input id="q" placeholder="Search by name or account number" autocomplete="off" style="margin:0 0 6px"><div id="accts"></div></div>
-  </main>
+  <header class="top"><div class="brand">BLACK BANK<small>Banker</small></div><div class="who"><span id="me"></span><button class="sm" id="ntf">Alerts</button><button class="sm" id="out">Log out</button></div></header>
+  <nav class="tabs" id="tabs"></nav>
+  <main id="page"></main>
 </div>
-
-<script>window.addEventListener("error",function(e){var d=document.createElement("div");d.style.cssText="padding:24px;color:#e0a89c;font-family:system-ui;line-height:1.5";d.textContent="This page couldn't load: "+(e.message||"script error")+". Make sure every file was uploaded to GitHub, then hard refresh.";document.body.appendChild(d)});</script>
+<div id="toast"></div>
 <script type="module">
-import { db, auth, configured, doc, setDoc, increment, writeBatch, updateDoc, deleteDoc, accountKey, fmtAcct, money, onSnapshot, collection, collectionGroup, query, orderBy,
-         signInWithEmailAndPassword, onAuthStateChanged, signOut } from "./firebase-init.js";
-
+import { db, auth, configured, doc, setDoc, increment, writeBatch, updateDoc, deleteDoc, accountKey, fmtAcct, money, gbp, RATE,
+  onSnapshot, collection, collectionGroup, query, orderBy, where, limit, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "./firebase-init.js";
 const $=id=>document.getElementById(id);
-const LABEL={ordered:"New",preparing:"Preparing",delivered:"Delivered"};
-let orders=[], known=null, filter="todo", ctx=null, soundOn=false, unsub=null;
+const h=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
+const btn=(t,c,f)=>{const b=h("button",c||"",t);if(f)b.onclick=f;return b};
+const num=ph=>{const i=h("input");i.type="number";i.min="0";i.step="0.01";i.placeholder=ph;return i};
+const toast=m=>{const t=$("toast");t.textContent=m;t.className="show";clearTimeout(toast.t);toast.t=setTimeout(()=>t.className="",3800)};
+const when=t=>new Date(t).toLocaleString([],{dateStyle:"short",timeStyle:"short"});
+const STEP=20;
+const toP=c=>Math.round(c*RATE/100),toC=p=>Math.round(p*100/RATE);
+const TIERS={"Silver":{fee:0,int:0,wd:0.05},"Silver Max":{fee:250,int:0.02,wd:0.025},"Gold":{fee:600,int:0.02,wd:0},"Black":{fee:1000,int:0.03,wd:0}};
+const LT={cash_in:"Cash added",cash_out:"Cash removed",deposit:"Deposit from bank funds",to_bank:"Moved to bank funds",cash_deposit:"Cash deposit",withdrawal:"Cash withdrawal",fee:"Monthly fee",interest:"Interest paid",closed:"Account closed, balance to bank funds"};
+let S={ok:false,funds:0,cash:0},accts=[],orders=[],reqs=[],ledger=[],accLedger=[],unsubs=[],known=null,Q="";
+const watch={id:null,u:null};
+const stateRef=()=>doc(db,"bank","state");
+const route=()=>location.hash.slice(1)||"funds";
 
-/* ---------- sound + notifications ---------- */
-function beep(){
-  if(!soundOn||!ctx)return;
-  try{
-    const o=ctx.createOscillator(),g=ctx.createGain();
-    o.type="sine";o.frequency.value=880;g.gain.value=.15;
-    o.connect(g);g.connect(ctx.destination);o.start();
-    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.5);o.stop(ctx.currentTime+.5);
-  }catch(e){}
-}
-$("snd").onclick=()=>{
-  soundOn=!soundOn;
-  if(soundOn&&!ctx){try{ctx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}
-  if(soundOn&&ctx&&ctx.state==="suspended")ctx.resume();
-  $("snd").textContent=soundOn?"🔔 Sound on":"🔔 Sound off";
-  if(soundOn)beep();
-};
-$("ntf").onclick=()=>{
-  if(!("Notification" in window)){$("ntf").textContent="Not supported";return}
-  Notification.requestPermission().then(p=>{$("ntf").textContent=p==="granted"?"Alerts on":"Alerts blocked"});
-};
-function notify(o){
-  if("Notification" in window&&Notification.permission==="granted"){
-    try{new Notification("New card order",{body:o.tier+" card for "+o.name+" → "+o.room})}catch(e){}
-  }
-}
-
-/* ---------- actions ---------- */
-const setStatus=(id,status)=>updateDoc(doc(db,"orders",id),{status}).catch(()=>alert("Couldn't update that order."));
-const remove=id=>{if(confirm("Delete this order?"))deleteDoc(doc(db,"orders",id)).catch(()=>alert("Couldn't delete."))};
-
-/* ---------- drawing ---------- */
-function drawTabs(){
-  const box=$("tabs");box.textContent="";
-  const todo=orders.filter(o=>o.status!=="delivered").length;
-  [["todo","To do ("+todo+")"],["all","All ("+orders.length+")"],["delivered","Delivered"]].forEach(([k,label])=>{
-    const b=document.createElement("button");b.textContent=label;
-    if(k===filter)b.className="on";
-    b.onclick=()=>{filter=k;draw()};
-    box.appendChild(b);
+/* ---------- money engine: every change conserves dollars ---------- */
+async function apply(ops){
+  const dF=ops.reduce((s,o)=>s+(o.dF||0),0),dC=ops.reduce((s,o)=>s+(o.dC||0),0);
+  if(!S.ok){toast("Start the new system on the Funds page first.");return false}
+  if(S.funds+dF<0){toast("Not enough bank funds ("+money(S.funds)+" available).");return false}
+  if(S.cash+dC<0){toast("Not enough cash in the reserve.");return false}
+  const b=writeBatch(db),now=Date.now();
+  ops.forEach(o=>{
+    if(o.a)b.update(doc(db,"accounts",o.a.id),{balance:increment(o.dA),...(o.extra||{})});
+    b.set(doc(collection(db,"ledger")),{type:o.type,acctId:o.a?o.a.id:null,name:o.a?o.a.name:"",acct:o.a?o.a.acct:"",usd:o.usd||0,fee:o.fee||0,gbp:o.gbp||0,at:now});
   });
+  if(dF||dC)b.set(stateRef(),{funds:increment(dF),cash:increment(dC)},{merge:true});
+  try{await b.commit();if(document.activeElement)document.activeElement.blur();draw(true);return true}
+  catch(e){toast("That didn't go through. Nothing was changed.");return false}
 }
-function draw(fresh=[]){
-  drawTabs();
-  const box=$("list");box.textContent="";
-  const rows=orders.filter(o=>filter==="all"||(filter==="todo"?o.status!=="delivered":o.status==="delivered"));
-  if(!rows.length){
-    const e=document.createElement("div");e.className="empty";
-    e.textContent=filter==="todo"?"No orders waiting. 🎉":"Nothing here.";
-    box.appendChild(e);return;
-  }
-  rows.forEach(o=>{
-    const el=document.createElement("div");el.className="order"+(fresh.includes(o.id)?" new":"");
-    const r=document.createElement("div");r.className="row";
-    const t=document.createElement("strong");t.textContent=o.tier+" card for "+o.name;
-    const p=document.createElement("span");p.className="pill s-"+o.status;p.textContent=LABEL[o.status]||o.status;
-    r.append(t,p);el.appendChild(r);
-    const m=document.createElement("div");m.className="meta";
-    m.textContent="Deliver to: "+o.room+" · "+new Date(o.at).toLocaleString([],{dateStyle:"short",timeStyle:"short"});
-    el.appendChild(m);
-    if(o.note){const n=document.createElement("div");n.className="meta";n.textContent="Note: "+o.note;el.appendChild(n)}
-    if(o.pin){const q=document.createElement("div");q.className="meta";q.textContent="PIN: "+o.pin+(o.acct?"  ·  Account: "+fmtAcct(o.acct):"");el.appendChild(q)}
-    const ac=document.createElement("div");ac.className="actions";
-    if(o.status==="ordered"){const b=document.createElement("button");b.className="ghost";b.textContent="Start preparing";b.onclick=()=>setStatus(o.id,"preparing");ac.appendChild(b)}
-    if(o.status!=="delivered"){const b=document.createElement("button");b.textContent="Deliver & open account";b.onclick=()=>deliver(o);ac.appendChild(b)}
-    const d=document.createElement("button");d.className="danger";d.textContent="Delete";d.onclick=()=>remove(o.id);ac.appendChild(d);
-    el.appendChild(ac);box.appendChild(el);
+const pence=i=>Math.round(parseFloat(i.value)*100);
+function cashBank(sign,i){
+  const p=pence(i);
+  if(!(p>0))return toast("Enter an amount in £.");
+  if(sign>0&&p%RATE)return toast("Cash in must be a multiple of "+RATE+"p.");
+  if(sign<0&&p%STEP)return toast("Payouts must be in "+STEP+"p steps.");
+  const c=toC(p);apply([{dF:sign*c,dC:sign*p,usd:c,gbp:p,type:sign>0?"cash_in":"cash_out"}]).then(ok=>{if(ok){i.value="";toast((sign>0?"Added ":"Removed ")+gbp(p)+" ("+money(c)+").")}});
+}
+async function cashDeposit(a,i){
+  const p=pence(i);if(!(p>0))return toast("Enter an amount in £.");
+  if(p%RATE)return toast("Cash in must be a multiple of "+RATE+"p.");
+  const c=toC(p);if(await apply([{a,dA:c,dC:p,usd:c,gbp:p,type:"cash_deposit"}]))toast("Deposited "+money(c)+" for "+gbp(p)+".");
+}
+async function cashWithdraw(a,i){
+  const p=pence(i);if(!(p>0))return toast("Enter an amount in £.");
+  if(p%STEP)return toast("Payouts must be in "+STEP+"p steps.");
+  const c=toC(p),fee=Math.round(c*(TIERS[a.tier]||TIERS.Silver).wd),debit=c+fee;
+  if(debit>(a.balance||0))return toast("Not enough in the account (needs "+money(debit)+").");
+  if(!confirm("Pay out "+gbp(p)+" in cash. The account is debited "+money(debit)+(fee?" including a "+money(fee)+" fee":"")+"."))return;
+  if(await apply([{a,dA:-debit,dF:fee,dC:-p,usd:c,fee,gbp:p,type:"withdrawal"}]))toast("Hand over "+gbp(p)+".");
+}
+async function move(a,i,dir){
+  const c=pence(i);if(!(c>0))return toast("Enter an amount in $.");
+  if(dir<0&&c>(a.balance||0))return toast("Not enough in the account.");
+  if(await apply([{a,dA:dir*c,dF:-dir*c,usd:c,type:dir>0?"deposit":"to_bank"}])){i.value="";toast("Moved "+money(c)+".")}
+}
+async function charge(list,kind,single){
+  const m=new Date().toISOString().slice(0,7),key=kind==="fee"?"feeMonth":"intMonth";
+  if(!single&&!confirm(kind==="fee"?"Take the monthly fee from every active account?":"Pay interest to every active account out of bank funds?"))return;
+  if(single&&list[0][key]===m&&!confirm("Already done this month for this account. Do it again?"))return;
+  const ops=[];let run=S.funds,done=0,skip=0;
+  list.forEach(a=>{
+    if((a.status||"active")!=="active")return;
+    const T=TIERS[a.tier]||TIERS.Silver,amt=kind==="fee"?T.fee:Math.round((a.balance||0)*T.int);
+    if(!(amt>0))return;
+    if(a[key]===m&&!single){done++;return}
+    if(kind==="fee"){if((a.balance||0)<amt){skip++;return}ops.push({a,dA:-amt,dF:amt,usd:amt,type:"fee",extra:{feeMonth:m}})}
+    else{if(amt>run){skip++;return}run-=amt;ops.push({a,dA:amt,dF:-amt,usd:amt,type:"interest",extra:{intMonth:m}})}
   });
+  const tail=(done?" "+done+" already done this month.":"")+(skip?" "+skip+" skipped ("+(kind==="fee"?"balance too low":"not enough bank funds")+").":"");
+  if(!ops.length)return toast("Nothing to do."+tail);
+  const tot=ops.reduce((s,o)=>s+o.usd,0);
+  if(await apply(ops))toast((kind==="fee"?"Took ":"Paid ")+money(tot)+" across "+ops.length+" account(s)."+tail);
+}
+async function start(){
+  if(!confirm("Set every account and the bank funds to $0.00 and the cash reserve to £0.00? This can't be undone."))return;
+  const b=writeBatch(db);
+  accts.forEach(a=>b.update(doc(db,"accounts",a.id),{balance:0,feeMonth:null,intMonth:null}));
+  b.set(stateRef(),{funds:0,cash:0,started:Date.now()});
+  try{await b.commit();toast("The new system is live.")}catch(e){toast("Couldn't start the system.")}
 }
 
-/* ---------- accounts ---------- */
-let accts=[],unsubA=null;
+/* ---------- orders, requests, accounts admin ---------- */
+const setOrder=(o,s)=>updateDoc(doc(db,"orders",o.id),{status:s}).catch(()=>toast("Couldn't update the order."));
 async function deliver(o){
   try{
     let acct;
     do{acct=String(crypto.getRandomValues(new Uint32Array(1))[0]%10000).padStart(4,"0")+"2026"}while(accts.some(a=>a.acct===acct));
-    await setDoc(doc(db,"accounts",await accountKey(acct,o.pin)),{acct,name:o.name,tier:o.tier,balance:0,created:Date.now()});
-    await updateDoc(doc(db,"orders",o.id),{status:"delivered",acct});
-  }catch(e){alert("Couldn't open the account.")}
+    await setDoc(doc(db,"accounts",await accountKey(acct,o.pin)),{acct,name:o.name,tier:o.tier,balance:0,created:Date.now(),status:"active"});
+    await updateDoc(doc(db,"orders",o.id),{status:"delivered",acct});toast("Account "+fmtAcct(acct)+" opened.");
+  }catch(e){toast("Couldn't open the account.")}
 }
-function adjust(a,sign,input){
-  const p=Math.round(parseFloat(input.value)*100);
-  if(!(p>0))return;
-  const fee=sign<0?Math.round(p*((TIERS[a.tier]||{}).wd||0)):0,total=p+fee;
-  if(sign<0&&total>a.balance){alert("Not enough funds"+(fee?" (a "+money(fee)+" withdrawal fee applies).":"."));return}
-  if(fee&&!confirm("Withdraw "+money(p)+"? "+a.tier+" withdrawal fee: "+money(fee)+". The account is debited "+money(total)+"."))return;
-  const b=writeBatch(db);
-  b.update(doc(db,"accounts",a.id),{balance:increment(sign*total)});
-  if(fee)b.set(fundsRef(),{balance:increment(fee)},{merge:true});
-  b.commit().then(()=>{input.value=""}).catch(()=>alert("Couldn't update the balance."));
-}
-/* ---------- customer requests ---------- */
-let reqs=[],unsubQ=null;
-const RL={replacement:"Replacement card",upgrade:"Card upgrade",loan:"Loan request"};
-const reqText=r=>r.type==="upgrade"?"Upgrade to "+r.to:r.type==="loan"?"Loan of "+money(r.amount||0):RL[r.type];
 function resolve(r,status){
   const b=writeBatch(db);
   b.update(doc(db,"accounts",r.acctId,"requests",r.id),{status});
   if(status==="approved"&&r.type==="upgrade")b.update(doc(db,"accounts",r.acctId),{tier:r.to});
-  b.commit().catch(()=>alert("Couldn't update that request."));
+  b.commit().catch(()=>toast("Couldn't update that request."));
 }
-function drawReqs(){
-  const box=$("reqs");box.textContent="";
-  const rows=reqs.filter(r=>accts.some(a=>a.id===r.acctId)).sort((x,y)=>(x.status==="pending"?0:1)-(y.status==="pending"?0:1)||y.at-x.at).slice(0,30);
-  const pend=rows.filter(r=>r.status==="pending").length;
-  $("rh").textContent="Requests"+(pend?" ("+pend+" pending)":"");
-  if(!rows.length){const e=document.createElement("div");e.className="empty";e.textContent="No requests.";box.appendChild(e);return}
-  rows.forEach(r=>{
-    const a=accts.find(x=>x.id===r.acctId);
-    const el=document.createElement("div");el.className="order";
-    const row=document.createElement("div");row.className="row";
-    const t=document.createElement("strong");t.textContent=reqText(r);
-    const p=document.createElement("span");p.className="pill "+(r.status==="pending"?"s-ordered":r.status==="approved"?"s-delivered":"");p.textContent=r.status;
-    row.append(t,p);el.appendChild(row);
-    const m=document.createElement("div");m.className="meta";
-    m.textContent=a.name+" · "+a.tier+" · "+fmtAcct(a.acct)+" · "+new Date(r.at).toLocaleString([],{dateStyle:"short",timeStyle:"short"});el.appendChild(m);
-    if(r.note){const n=document.createElement("div");n.className="meta";n.textContent="Note: "+r.note;el.appendChild(n)}
-    if(r.status==="pending"){
-      const ac=document.createElement("div");ac.className="actions";
-      const y=document.createElement("button");y.textContent="Approve";y.onclick=()=>resolve(r,"approved");
-      const n=document.createElement("button");n.className="danger";n.textContent="Decline";n.onclick=()=>resolve(r,"declined");
-      ac.append(y,n);el.appendChild(ac);
-    }
-    box.appendChild(el);
-  });
-}
-function listenReqs(){
-  if(unsubQ)unsubQ();
-  unsubQ=onSnapshot(collectionGroup(db,"requests"),snap=>{
-    reqs=snap.docs.map(d=>({id:d.id,acctId:d.ref.parent.parent.id,...d.data()}));drawReqs();
-  },()=>{});
-}
-
-/* ---------- bank funds, fees, interest ---------- */
-const TIERS={"Silver":{fee:0,int:0,wd:0.05},"Silver Max":{fee:250,int:0.02,wd:0.025},"Gold":{fee:600,int:0.02,wd:0},"Black":{fee:1000,int:0.03,wd:0}};
-let funds=0,unsubF=null;
-const mk=()=>new Date().toISOString().slice(0,7);
-const fundsRef=()=>doc(db,"bank","funds");
-function listenFunds(){
-  if(unsubF)unsubF();
-  unsubF=onSnapshot(fundsRef(),s=>{funds=s.exists()?(s.data().balance||0):0;$("funds").textContent=money(funds)},()=>{});
-}
-function adjustFunds(sign){
-  const p=Math.round(parseFloat($("fa").value)*100);
-  if(!(p>0))return;
-  if(sign<0&&p>funds){alert("The bank doesn't have that much.");return}
-  setDoc(fundsRef(),{balance:increment(sign*p)},{merge:true}).then(()=>{$("fa").value=""}).catch(()=>alert("Couldn't update bank funds."));
-}
-async function takeFee(list){
-  const m=mk(),single=list!==accts;let force=false;
-  if(single&&list[0].feeMonth===m){if(!confirm("This account was already charged this month. Charge again?"))return;force=true}
-  if(!single&&!confirm("Take the monthly fee from every active account?"))return;
-  const b=writeBatch(db);let total=0,n=0,done=0,broke=0;
-  list.forEach(a=>{
-    const fee=(TIERS[a.tier]||{}).fee||0;
-    if(!fee||(a.status||"active")!=="active")return;
-    if(a.feeMonth===m&&!force){done++;return}
-    if(a.balance<fee){broke++;return}
-    b.update(doc(db,"accounts",a.id),{balance:increment(-fee),feeMonth:m});total+=fee;n++;
-  });
-  if(n){b.set(fundsRef(),{balance:increment(total)},{merge:true});try{await b.commit()}catch(e){return alert("Couldn't take the fees.")}}
-  alert((n?"Took "+money(total)+" from "+n+" account(s).":"Nothing to take.")+(done?" "+done+" already charged this month.":"")+(broke?" "+broke+" couldn't afford it.":""));
-}
-async function addInterest(list){
-  const m=mk(),single=list!==accts;let force=false;
-  if(single&&list[0].intMonth===m){if(!confirm("Interest was already added to this account this month. Add again?"))return;force=true}
-  if(!single&&!confirm("Pay interest to every active account out of bank funds?"))return;
-  const b=writeBatch(db);let total=0,n=0,done=0,short=0;
-  list.forEach(a=>{
-    const amt=Math.round(a.balance*((TIERS[a.tier]||{}).int||0));
-    if(amt<=0||(a.status||"active")!=="active")return;
-    if(a.intMonth===m&&!force){done++;return}
-    if(total+amt>funds){short++;return}
-    b.update(doc(db,"accounts",a.id),{balance:increment(amt),intMonth:m});total+=amt;n++;
-  });
-  if(n){b.set(fundsRef(),{balance:increment(-total)},{merge:true});try{await b.commit()}catch(e){return alert("Couldn't add interest.")}}
-  alert((n?"Paid "+money(total)+" to "+n+" account(s).":"Nothing to pay.")+(done?" "+done+" already paid this month.":"")+(short?" "+short+" skipped: not enough bank funds.":""));
-}
-function closeAcct(a){
-  if(!confirm("Close "+a.name+"'s account? "+(a.balance>0?"Its "+money(a.balance)+" balance should be paid out first. ":"")+"This permanently deletes it."))return;
-  deleteDoc(doc(db,"accounts",a.id)).catch(()=>alert("Couldn't close the account."));
-}
-$("fadd").onclick=()=>adjustFunds(1);$("frem").onclick=()=>adjustFunds(-1);
-$("feeAll").onclick=()=>takeFee(accts);$("intAll").onclick=()=>addInterest(accts);
-
-function setAcctStatus(a,s){
-  if(s==="closed"&&!confirm("Close this account?")){drawAccts();return}
-  updateDoc(doc(db,"accounts",a.id),{status:s}).catch(()=>alert("Couldn't change the status."));
-}
+function setStatus(a,s){updateDoc(doc(db,"accounts",a.id),{status:s}).catch(()=>toast("Couldn't change the status."))}
 async function renumber(a){
-  let n=prompt("New account number for "+a.name+" (digits only):",a.acct);
-  if(n===null)return;
+  let n=prompt("New account number for "+a.name+" (digits only):",a.acct);if(n===null)return;
   n=n.replace(/\D/g,"");
-  if(n.length!==8&&n.length!==16)return alert("Account numbers must be 8 digits.");
-  if(n===a.acct)return;
-  if(accts.some(x=>x.acct===n))return alert("That number is already in use.");
-  const ord=orders.find(o=>o.acct===a.acct);
-  const pin=ord?ord.pin:prompt("Enter this account's PIN:");
-  if(!pin)return;
+  if(n.length!==8&&n.length!==16)return toast("Account numbers must be 8 digits.");
+  if(n===a.acct)return;if(accts.some(x=>x.acct===n))return toast("That number is already in use.");
+  const ord=orders.find(o=>o.acct===a.acct),pin=ord?ord.pin:prompt("Enter this account's PIN:");if(!pin)return;
   try{
-    if(await accountKey(a.acct,pin)!==a.id)return alert("That PIN doesn't match this account.");
+    if(await accountKey(a.acct,pin)!==a.id)return toast("That PIN doesn't match this account.");
     const {id,...rest}=a;
     await setDoc(doc(db,"accounts",await accountKey(n,pin)),{...rest,acct:n});
     if(ord)await updateDoc(doc(db,"orders",ord.id),{acct:n});
-    await deleteDoc(doc(db,"accounts",a.id));
-  }catch(e){alert("Couldn't change the number.")}
+    await deleteDoc(doc(db,"accounts",a.id));location.hash="#accounts";toast("Number changed.");
+  }catch(e){toast("Couldn't change the number.")}
 }
-function drawAccts(){
-  const q=$("q").value.trim().toLowerCase(),qd=q.replace(/\D/g,""),box=$("accts");box.textContent="";
-  const rows=accts.filter(a=>!q||a.name.toLowerCase().includes(q)||(qd&&a.acct.includes(qd)));
-  if(!rows.length){const e=document.createElement("div");e.className="empty";e.textContent=accts.length?"No match.":"No accounts yet. They're created when you deliver a card.";box.appendChild(e);return}
-  rows.forEach(a=>{
-    const el=document.createElement("div");el.className="order";
-    const r=document.createElement("div");r.className="row";
-    const t=document.createElement("strong");t.textContent=a.name+" · "+a.tier+((a.status&&a.status!=="active")?" · "+a.status.toUpperCase():"");
-    const bal=document.createElement("strong");bal.textContent=money(a.balance);
-    r.append(t,bal);el.appendChild(r);
-    const m=document.createElement("div");m.className="meta";m.textContent=fmtAcct(a.acct);el.appendChild(m);
-    const ac=document.createElement("div");ac.className="actions";
-    const i=document.createElement("input");i.type="number";i.min="0";i.step="0.01";i.placeholder="Amount £";i.style.cssText="width:130px;margin:0";
-    const d=document.createElement("button");d.textContent="Deposit";d.onclick=()=>adjust(a,1,i);
-    const w=document.createElement("button");w.className="ghost";w.textContent="Withdraw";w.onclick=()=>adjust(a,-1,i);
-    const live=(a.status||"active")==="active";i.disabled=d.disabled=w.disabled=!live;
-    ac.append(i,d,w);el.appendChild(ac);
-    const a2=document.createElement("div");a2.className="actions";
-    const sel=document.createElement("select");sel.style.cssText="font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px";
-    [["active","Active"],["frozen","Frozen"],["locked","Locked"]].forEach(([v,l])=>{const op=document.createElement("option");op.value=v;op.textContent=l;if(v===(a.status||"active"))op.selected=true;sel.appendChild(op)});
-    sel.onchange=()=>setAcctStatus(a,sel.value);
-    const nb=document.createElement("button");nb.className="ghost";nb.textContent="Change number";nb.onclick=()=>renumber(a);
-    const cl=document.createElement("button");cl.className="danger";cl.textContent="Close account";cl.onclick=()=>closeAcct(a);
-    a2.append(sel,nb,cl);
-    const a3=document.createElement("div");a3.className="actions";
-    const fb=document.createElement("button");fb.textContent="Take Monthly Fee";fb.onclick=()=>takeFee([a]);
-    const ib=document.createElement("button");ib.className="ghost";ib.textContent="Add Interest";ib.onclick=()=>addInterest([a]);
-    fb.disabled=ib.disabled=!live;a3.append(fb,ib);
-    el.append(a3,a2);box.appendChild(el);
-  });
-}
-$("q").oninput=drawAccts;
-function listenAccts(){
-  if(unsubA)unsubA();
-  unsubA=onSnapshot(collection(db,"accounts"),snap=>{
-    accts=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.created-a.created);drawReqs();
-    if(document.activeElement&&document.activeElement.type==="number")return;
-    drawAccts();
-  },()=>{});
+async function closeAcct(a){
+  const bal=a.balance||0;
+  if(!confirm("Close "+a.name+"'s account and delete it permanently?"+(bal?" Its "+money(bal)+" moves to the bank funds (pay it out as cash first if they want it).":"")))return;
+  const b=writeBatch(db);b.delete(doc(db,"accounts",a.id));
+  if(bal&&S.ok){b.set(stateRef(),{funds:increment(bal)},{merge:true});b.set(doc(collection(db,"ledger")),{type:"closed",acctId:a.id,name:a.name,acct:a.acct,usd:bal,fee:0,gbp:0,at:Date.now()})}
+  try{await b.commit();location.hash="#accounts";toast("Account closed.")}catch(e){toast("Couldn't close the account.")}
 }
 
-/* ---------- live data ---------- */
+/* ---------- pages ---------- */
+function feed(list){
+  const box=h("div","panel");
+  if(!list.length)box.append(h("div","empty","No activity yet."));
+  list.forEach(r=>{const i=h("div","item"),t=h("div","row2");
+    t.append(h("strong","",(LT[r.type]||r.type)+(r.name?" · "+r.name:"")),h("span","",money(r.usd)+(r.gbp?" / "+gbp(r.gbp):"")));
+    i.append(t,h("div","meta",when(r.at)+(r.fee?" · fee "+money(r.fee):"")));box.append(i)});
+  return box;
+}
+function pFunds(p){
+  p.append(h("h1","pt","Funds"));
+  if(!S.ok){
+    const c=h("div","panel");
+    c.append(h("h2","","Start the new system"),h("p","hint","This sets every account and the bank funds to $0.00 and the cash reserve to £0.00. From then on, dollars only enter or leave through cash."),btn("Start with everything at $0",null,start));
+    return p.append(c);
+  }
+  const inAcc=accts.reduce((s,a)=>s+(a.balance||0),0),total=S.funds+inAcc,need=total*RATE/100,diff=S.cash-need,g=h("div","grid");
+  [["Bank funds",money(S.funds),1],["Cash reserve",gbp(S.cash)],["In customer accounts",money(inAcc)],["Total dollars",money(total),0,"= "+gbp(Math.round(need))+" of cash"]].forEach(([l,v,gold,sub])=>{
+    const t=h("div","tile"+(gold?" gold":""));t.append(h("small","",l),h("b","",v));if(sub)t.append(h("div","hint",sub));g.append(t)});
+  const ok=Math.abs(diff)<.5;
+  p.append(g,h("div","check "+(ok?"ok":"bad"),ok?"✓ Every dollar is backed by cash":"⚠ Cash and dollars are out by "+gbp(Math.abs(Math.round(diff)))));
+  const cp=h("div","panel"),i=num("Amount in £"),r=h("div","row");
+  r.append(i,btn("Add cash",null,()=>cashBank(1,i)),btn("Remove cash","ghost",()=>cashBank(-1,i)));
+  cp.append(h("h2","","Cash in and out"),h("div","hint","Exchange rate: $1.00 = £"+(RATE/100).toFixed(2)+". Cash in: multiples of "+RATE+"p. Payouts: "+STEP+"p steps. Adding cash adds dollars to the bank funds; removing cash takes them out."),r);
+  const mp=h("div","panel"),mr=h("div","row");
+  mr.append(btn("Take Monthly Fee (all)",null,()=>charge(accts,"fee")),btn("Add Interest (all)","ghost",()=>charge(accts,"interest")));
+  mp.append(h("h2","","Month end"),h("div","hint","Fees move dollars into the bank funds. Interest is paid out of them."),mr);
+  p.append(cp,mp,h("h2","","Recent activity"),feed(ledger));
+}
+function pOrders(p){
+  p.append(h("h1","pt","Orders"));
+  const rows=[...orders].sort((x,y)=>(x.status==="delivered")-(y.status==="delivered")||y.at-x.at).slice(0,50),box=h("div","panel");
+  if(!rows.length)box.append(h("div","empty","No orders yet."));
+  rows.forEach(o=>{
+    const i=h("div","item"),t=h("div","row2");
+    t.append(h("strong","",o.tier+" card for "+o.name),h("span","pill "+(o.status==="delivered"?"k":"g"),o.status==="ordered"?"New":o.status));
+    i.append(t,h("div","meta","Deliver to: "+o.room+" · PIN "+o.pin+(o.acct?" · Account "+fmtAcct(o.acct):"")+" · "+when(o.at)));
+    if(o.note)i.append(h("div","meta","Note: "+o.note));
+    const r=h("div","row");
+    if(o.status==="ordered")r.append(btn("Start preparing","ghost",()=>setOrder(o,"preparing")));
+    if(o.status!=="delivered")r.append(btn("Deliver & open account",null,()=>deliver(o)));
+    r.append(btn("Delete","danger",()=>{if(confirm("Delete this order?"))deleteDoc(doc(db,"orders",o.id))}));
+    i.append(r);box.append(i);
+  });
+  p.append(box);
+}
+function pReqs(p){
+  p.append(h("h1","pt","Requests"));
+  const rows=reqs.filter(r=>accts.some(a=>a.id===r.acctId)).sort((x,y)=>(x.status==="pending"?0:1)-(y.status==="pending"?0:1)||y.at-x.at).slice(0,40),box=h("div","panel");
+  if(!rows.length)box.append(h("div","empty","No requests."));
+  rows.forEach(r=>{
+    const a=accts.find(x=>x.id===r.acctId),i=h("div","item"),t=h("div","row2");
+    t.append(h("strong","",r.type==="upgrade"?"Upgrade to "+r.to:r.type==="loan"?"Loan of "+money(r.amount||0):"Replacement card"),h("span","pill "+(r.status==="pending"?"g":r.status==="approved"?"k":"r"),r.status));
+    i.append(t,h("div","meta",a.name+" · "+a.tier+" · "+fmtAcct(a.acct)+" · "+when(r.at)));
+    if(r.note)i.append(h("div","meta","Note: "+r.note));
+    if(r.status==="pending"){const w=h("div","row");w.append(btn("Approve",null,()=>resolve(r,"approved")),btn("Decline","danger",()=>resolve(r,"declined")));i.append(w)}
+    box.append(i);
+  });
+  p.append(box);
+}
+function pAccts(p){
+  p.append(h("h1","pt","Accounts"));
+  const s=h("input");s.placeholder="Search by name or account number";s.value=Q;s.style.marginBottom="14px";
+  const box=h("div","panel");
+  const fill=()=>{
+    Q=s.value;const q=Q.trim().toLowerCase(),qd=q.replace(/\D/g,"");box.textContent="";
+    const rows=accts.filter(a=>!q||a.name.toLowerCase().includes(q)||(qd&&a.acct.includes(qd)));
+    if(!rows.length)box.append(h("div","empty",accts.length?"No match.":"No accounts yet. They're opened when you deliver a card."));
+    rows.forEach(a=>{const l=h("a","item");l.href="#account/"+a.id;const t=h("div","row2");
+      t.append(h("strong","",a.name),h("strong","",money(a.balance||0)));
+      l.append(t,h("div","meta",fmtAcct(a.acct)+" · "+a.tier+((a.status||"active")!=="active"?" · "+a.status:"")));box.append(l)});
+  };
+  s.oninput=fill;fill();p.append(s,box);
+}
+function pAcct(p,id){
+  p.append(Object.assign(h("a","back","← All accounts"),{href:"#accounts"}));
+  const a=accts.find(x=>x.id===id);
+  if(!a)return p.append(h("div","empty","Account not found."));
+  const T=TIERS[a.tier]||TIERS.Silver,live=(a.status||"active")==="active";
+  p.append(h("h1","pt",a.name),h("div","sub",fmtAcct(a.acct)+" · "+a.tier+" · "+(a.status||"active")));
+  const g=h("div","grid");
+  [["Balance",money(a.balance||0),1],["Monthly fee",money(T.fee)],["Interest",(T.int*100)+"%"],["Withdrawal fee",(T.wd*100)+"%"]].forEach(([l,v,gold])=>{
+    const t=h("div","tile"+(gold?" gold":""));t.append(h("small","",l),h("b","",v));g.append(t)});
+  p.append(g);
+  const cp=h("div","panel"),ci=num("Amount in £"),pv=h("div","hint"),r1=h("div","row");
+  const dep=btn("Cash deposit",null,()=>cashDeposit(a,ci)),wd=btn("Cash withdrawal","ghost",()=>cashWithdraw(a,ci));
+  ci.oninput=()=>{const q=pence(ci);if(!(q>0)){pv.textContent="";return}const c=toC(q),f=Math.round(c*T.wd);
+    pv.textContent="£"+(q/100).toFixed(2)+" = "+money(c)+" · a withdrawal debits "+money(c+f)+(f?" (incl. "+money(f)+" fee)":"")};
+  r1.append(ci,dep,wd);cp.append(h("h2","","Cash"),r1,pv);
+  const mp=h("div","panel"),mi=num("Amount in $"),r2=h("div","row");
+  r2.append(mi,btn("From bank funds",null,()=>move(a,mi,1)),btn("To bank funds","ghost",()=>move(a,mi,-1)));
+  mp.append(h("h2","","Move dollars"),h("div","hint","Transfers between this account and the bank funds."),r2);
+  const mo=h("div","panel"),r3=h("div","row");
+  r3.append(btn("Take Monthly Fee",null,()=>charge([a],"fee",1)),btn("Add Interest","ghost",()=>charge([a],"interest",1)));
+  mo.append(h("h2","","Month end"),r3);
+  [dep,wd,...mp.querySelectorAll("button"),...r3.children,ci,mi].forEach(x=>x.disabled=!live);
+  const sp=h("div","panel"),sel=h("select");
+  [["active","Active"],["frozen","Frozen"],["locked","Locked"]].forEach(([v,l])=>{const o=h("option","",l);o.value=v;if(v===(a.status||"active"))o.selected=true;sel.append(o)});
+  sel.onchange=()=>setStatus(a,sel.value);
+  const r4=h("div","row");r4.append(sel,btn("Change number","ghost",()=>renumber(a)),btn("Close account","danger",()=>closeAcct(a)));
+  sp.append(h("h2","","Account"),r4);
+  p.append(cp,mp,mo,sp,h("h2","","Activity"),feed(accLedger));
+}
+function watchAcct(id){
+  if(watch.id===id)return;
+  if(watch.u)watch.u();watch.id=id;watch.u=null;accLedger=[];
+  if(id)watch.u=onSnapshot(query(collection(db,"ledger"),where("acctId","==",id)),s=>{accLedger=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.at-a.at);draw()},()=>{});
+}
+
+/* ---------- shell ---------- */
+function draw(force){
+  if(!configured||$("appView").hidden)return;
+  const head=route().split("/")[0],po=orders.filter(o=>o.status!=="delivered").length,pr=reqs.filter(r=>r.status==="pending"&&accts.some(a=>a.id===r.acctId)).length;
+  const nav=$("tabs");nav.textContent="";
+  [["funds","Funds",0],["orders","Orders",po],["requests","Requests",pr],["accounts","Accounts",0]].forEach(([k,l,n])=>{
+    const a=h("a",head===k||(k==="accounts"&&head==="account")?"on":"",l);a.href="#"+k;if(n)a.append(h("span","badge",n));nav.append(a)});
+  const ae=document.activeElement;
+  if(!force&&ae&&$("page").contains(ae)&&/INPUT|SELECT/.test(ae.tagName))return;
+  const r=route().split("/"),p=$("page");p.textContent="";
+  watchAcct(r[0]==="account"?r[1]:null);
+  ({funds:pFunds,orders:pOrders,requests:pReqs,accounts:pAccts,account:pAcct}[r[0]]||pFunds)(p,r[1]);
+}
+window.onhashchange=()=>{window.scrollTo(0,0);draw(true)};
+const er=e=>{if(e.code==="permission-denied"){$("err").textContent="That account isn't the banker account.";signOut(auth)}};
 function listen(){
-  if(unsub)unsub();
-  known=null;
-  unsub=onSnapshot(query(collection(db,"orders"),orderBy("at","desc")),snap=>{
-    $("live").textContent="● live";
-    const list=snap.docs.map(d=>({id:d.id,...d.data()}));
-    const fresh=known?list.filter(o=>!known.has(o.id)):[];
-    known=new Set(list.map(o=>o.id));
-    orders=list;draw(fresh.map(o=>o.id));
-    if(fresh.length){
-      beep();fresh.forEach(notify);
-      document.title="("+fresh.length+") New order! | Black Bank";
-      setTimeout(()=>{document.title="Banker | Black Bank"},4000);
-    }
-  },err=>{
-    if(err.code==="permission-denied"){
-      $("err").textContent="That account isn't the banker account.";
-      signOut(auth);
-    }else{$("live").textContent="reconnecting…"}
-  });
+  stop();
+  unsubs=[
+    onSnapshot(stateRef(),s=>{S=s.exists()?{ok:true,...s.data()}:{ok:false,funds:0,cash:0};draw()},er),
+    onSnapshot(collection(db,"accounts"),s=>{accts=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.created-a.created);draw()},er),
+    onSnapshot(query(collection(db,"orders"),orderBy("at","desc")),s=>{
+      const l=s.docs.map(d=>({id:d.id,...d.data()}));
+      if(known)l.filter(o=>!known.has(o.id)).forEach(o=>{toast("New order: "+o.tier+" card for "+o.name);
+        if("Notification" in window&&Notification.permission==="granted")try{new Notification("New card order",{body:o.tier+" card for "+o.name})}catch(e){}});
+      known=new Set(l.map(o=>o.id));orders=l;draw()},er),
+    onSnapshot(collectionGroup(db,"requests"),s=>{reqs=s.docs.map(d=>({id:d.id,acctId:d.ref.parent.parent.id,...d.data()}));draw()},()=>{}),
+    onSnapshot(query(collection(db,"ledger"),orderBy("at","desc"),limit(40)),s=>{ledger=s.docs.map(d=>({id:d.id,...d.data()}));draw()},()=>{})
+  ];
 }
-
-/* ---------- login ---------- */
-function showApp(){$("loginView").hidden=true;$("appView").hidden=false;listen();listenAccts();listenFunds();listenReqs()}
-function showLogin(){if(unsub){unsub();unsub=null}if(unsubA){unsubA();unsubA=null}if(unsubF){unsubF();unsubF=null}if(unsubQ){unsubQ();unsubQ=null}$("appView").hidden=true;$("loginView").hidden=false}
+function stop(){unsubs.forEach(u=>u());unsubs=[];if(watch.u)watch.u();watch.u=null;watch.id=null;known=null}
+function showApp(u){$("loginView").hidden=true;$("appView").hidden=false;$("me").textContent=u.email;listen();draw(true)}
+function showLogin(){stop();$("appView").hidden=true;$("loginView").hidden=false}
 async function login(){
   $("err").textContent="";
   try{await signInWithEmailAndPassword(auth,$("em").value.trim(),$("pw").value);$("pw").value=""}
   catch(e){$("err").textContent="Wrong email or password."}
 }
-$("go").onclick=login;
-$("pw").onkeydown=e=>{if(e.key==="Enter")login()};
-$("out").onclick=()=>signOut(auth);
-
-if(!configured){
-  showLogin();$("go").disabled=true;
-  $("err").textContent="Not set up yet: add your Firebase settings (see SETUP.md).";
-}else{
-  onAuthStateChanged(auth,u=>{u?showApp():showLogin()});
-}
+$("go").onclick=login;$("pw").onkeydown=e=>{if(e.key==="Enter")login()};$("out").onclick=()=>signOut(auth);
+$("ntf").onclick=()=>{if("Notification" in window)Notification.requestPermission().then(p=>{$("ntf").textContent=p==="granted"?"Alerts on":"Alerts blocked"})};
+if(!configured){showLogin();$("go").disabled=true;$("err").textContent="Not set up yet: add your Firebase settings (see SETUP.md)."}
+else onAuthStateChanged(auth,u=>{u?showApp(u):showLogin()});
 </script>
-<script src="nav.js"></script>
 </body>
 </html>
