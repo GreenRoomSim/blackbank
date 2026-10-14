@@ -31,6 +31,8 @@ button:disabled{opacity:.4;cursor:default}
 #welcome i{display:block;height:1px;background:var(--accent);margin:0 auto;animation:grow 1.4s .5s both}
 @keyframes up{from{opacity:0;transform:translateY(16px)}}@keyframes grow{from{width:0}to{width:120px}}
 .acct{display:none;animation:up .6s both}
+.notice{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;background:rgba(201,162,75,.12);border:1px solid var(--accent);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:.92rem}
+.notice[hidden]{display:none}.notice button{background:transparent;color:var(--accent);padding:0 4px;font-size:1.2rem;line-height:1}
 .hi{font-family:Georgia,serif;font-size:1.3rem;text-align:center;margin-bottom:16px}
 .card{aspect-ratio:1.586;border-radius:18px;padding:18px;position:relative;overflow:hidden;color:var(--fg);background:linear-gradient(135deg,var(--g1),var(--g2));box-shadow:0 18px 40px rgba(0,0,0,.5)}
 .card[data-tier=silver]{--g1:#8f98a3;--g2:#e3e7ec;--fg:#1d2430}.card[data-tier=silvermax]{--g1:#5c6f8c;--g2:#dfe9f7;--fg:#101a2c}
@@ -40,9 +42,12 @@ button:disabled{opacity:.4;cursor:default}
 .bal{text-align:center;margin:22px 0 4px;font-size:2.6rem;font-weight:600;font-family:Georgia,serif;color:var(--accent)}
 .lbl{text-align:center;color:var(--mute);font-size:.8rem;letter-spacing:3px;text-transform:uppercase}
 .frz{display:none;background:rgba(224,137,122,.12);border:1px solid #5a2f28;color:#e0a89c;border-radius:12px;padding:12px;margin-bottom:14px;text-align:center;font-size:.9rem}
+.tabs2{display:flex;gap:6px;margin-top:20px}.tabs2 button{flex:1;background:transparent;color:var(--mute);border:1px solid var(--line);letter-spacing:2px;text-transform:uppercase;font-size:.75rem;padding:11px}
+.tabs2 button.on{color:#0b0b0c;background:var(--accent);border-color:var(--accent)}
+[hidden]{display:none!important}
 .rv{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:.92rem}.rv:first-of-type{border-top:0}.rv span:first-child{color:var(--mute)}
-.perk{color:var(--accent);font-size:.9rem;padding:3px 0}
-.svcs{display:grid;gap:8px}.svcs button{text-align:left;padding:13px 14px}.svcs small{display:block;font-weight:400;opacity:.75;margin-top:2px}
+.perk{color:var(--accent);font-size:.9rem;padding:3px 0}.hint{color:var(--mute);font-size:.88rem;line-height:1.5}
+.svcs{display:grid;gap:8px}.svcs button{text-align:left;padding:13px 14px}
 .msg{color:var(--ok);font-size:.88rem;margin-top:10px;min-height:1.2em}
 .rf{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}.rf .row{display:flex;gap:8px}.rf .row button{flex:1}
 .req{border-top:1px solid var(--line);padding:9px 0}.req:first-of-type{border-top:0}
@@ -66,20 +71,25 @@ button:disabled{opacity:.4;cursor:default}
   </div>
   <div id="welcome"><div><small>Welcome back</small><b id="wt"></b><i></i></div></div>
   <div class="acct" id="acct">
+    <div class="notice" id="notice" hidden><span id="nt"></span><button id="nx" aria-label="Dismiss">×</button></div>
     <div class="hi" id="hi"></div>
     <div class="frz" id="frz">This account is frozen. Transactions are on hold. Please contact your banker.</div>
     <div class="card" id="card"><div class="b">BLACK BANK</div><div class="n" id="cn"></div><div class="h" id="ch"></div><div class="t" id="ct"></div></div>
     <div class="bal" id="bal">$0.00</div><div class="lbl">Available balance</div>
-    <div class="panel"><h2>Your card</h2><div id="det"></div></div>
-    <div class="panel"><h2>Services</h2>
-      <div class="svcs">
-        <button class="ghost" data-t="replacement">Replace my card</button>
-        <button class="ghost" data-t="upgrade">Upgrade my card</button>
-        <button class="ghost" data-t="loan">Request a loan</button>
+    <div class="tabs2" id="tb"><button class="on" data-v="vOv">Overview</button><button data-v="vLn">Loans</button></div>
+    <div id="vOv">
+      <div class="panel"><h2>Your card</h2><div id="det"></div></div>
+      <div class="panel"><h2>Services</h2>
+        <div class="svcs">
+          <button class="ghost" data-t="replacement">Replace my card</button>
+          <button class="ghost" data-t="upgrade">Upgrade my card</button>
+          <button class="ghost" data-t="loan">Request a loan</button>
+        </div>
+        <div id="rf"></div><div class="msg" id="rm"></div>
       </div>
-      <div id="rf"></div><div class="msg" id="rm"></div>
+      <div class="panel" id="rp" hidden><h2>My requests</h2><div id="rl"></div></div>
     </div>
-    <div class="panel" id="rp" hidden><h2>My requests</h2><div id="rl"></div></div>
+    <div id="vLn" hidden><div class="panel"><h2>Loans</h2><div id="ln"></div><div class="msg" id="lm"></div></div></div>
     <button class="out" id="out">Sign out</button>
   </div>
 </main>
@@ -92,6 +102,7 @@ const INFO={"Silver":{fee:"$0.00",int:"0%",wd:"5%",perks:["Free to hold"]},
  "Gold":{fee:"$6.00",int:"2%",wd:"None",perks:["Free card replacements","Loans up to $10.00"]},
  "Black":{fee:"$10.00",int:"3%",wd:"None",perks:["Free card replacements","Exclusive services","Loans up to $25.00 (highest limit)"]}};
 const ORDER=["Silver","Silver Max","Gold","Black"],LOAN={"Gold":1000,"Black":2500};
+const LOCKN={withdrawals:"Withdrawals",deposits:"Deposits",loans:"Loan requests",upgrades:"Upgrades",replacements:"Replacements"};
 let pin="",unsubA=null,unsubR=null,key=null,cur=null,reqs=[],shown=0,fails=0,lockUntil=0,live=false,revealed=false;
 
 /* ---- keypad sign-in ---- */
@@ -137,10 +148,14 @@ function enter(d){
 }
 function out(m){
   if(unsubA)unsubA();if(unsubR)unsubR();unsubA=unsubR=null;
-  live=revealed=false;pin="";shown=0;cur=null;reqs=[];dots();closeForm();$("rm").textContent="";
+  live=revealed=false;pin="";shown=0;cur=null;reqs=[];dots();closeForm();$("rm").textContent="";$("lm").textContent="";tab("vOv");
   $("acct").style.display="none";$("welcome").style.display="none";$("form").style.display="block";$("an").value="";$("err").textContent=m||"";
 }
 $("out").onclick=()=>out("");
+
+/* ---- tabs ---- */
+function tab(v){["vOv","vLn"].forEach(x=>$(x).hidden=x!==v);document.querySelectorAll("#tb button").forEach(b=>b.classList.toggle("on",b.dataset.v===v))}
+document.querySelectorAll("#tb button").forEach(b=>b.onclick=()=>tab(b.dataset.v));
 
 /* ---- account view ---- */
 function count(to){const from=shown,t0=performance.now();shown=to;
@@ -152,13 +167,47 @@ function render(d,st){
   $("ch").textContent=d.name.toUpperCase();$("ct").textContent=d.tier;
   $("frz").style.display=st==="frozen"?"block":"none";
   if(revealed)count(d.balance);
-  const f=INFO[d.tier]||INFO.Silver,box=$("det");box.textContent="";
-  [["Account",fmtAcct(d.acct)],["Card",d.tier],["Status",st==="frozen"?"Frozen":"Active"],["Monthly fee",f.fee],["Interest on balance",f.int],["Withdrawal fee",f.wd]]
+  let hide=false;try{hide=!!d.noticeAt&&localStorage.getItem("hb_nx_"+key.slice(0,8))===String(d.noticeAt)}catch(e){}
+  $("notice").hidden=!(d.notice&&!hide);$("nt").textContent=d.notice||"";
+  const f=INFO[d.tier]||INFO.Silver,owed=d.loanOwed||0,lk=d.locks||{},box=$("det");box.textContent="";
+  const locked=Object.keys(LOCKN).filter(k=>lk[k]).map(k=>LOCKN[k]);
+  [["Account",fmtAcct(d.acct)],["Card",d.tier],["Status",st==="frozen"?"Frozen":"Active"],["Monthly fee",f.fee],["Interest on balance",f.int],["Withdrawal fee",f.wd],
+   ...(owed?[["Loan owed",money(owed)]]:[]),...(locked.length?[["Locked by your banker",locked.join(", ")]]:[])]
     .forEach(([a,b])=>{const r=el("div","rv");r.append(el("span","",a),el("span","",b));box.appendChild(r)});
   f.perks.forEach(p=>box.appendChild(el("div","perk","✦ "+p)));
   const sv=document.querySelectorAll(".svcs button");
-  sv[1].disabled=d.tier==="Black";sv[2].disabled=!LOAN[d.tier];
-  sv[2].textContent=LOAN[d.tier]?"Request a loan (up to "+money(LOAN[d.tier])+")":"Request a loan (Gold and Black)";
+  sv[0].disabled=!!lk.replacements;sv[0].textContent="Replace my card"+(lk.replacements?" (locked)":"");
+  sv[1].disabled=d.tier==="Black"||!!lk.upgrades;sv[1].textContent="Upgrade my card"+(lk.upgrades?" (locked)":"");
+  sv[2].disabled=!LOAN[d.tier]||owed>0||!!lk.loans;
+  sv[2].textContent=!LOAN[d.tier]?"Request a loan (Gold and Black)":lk.loans?"Request a loan (locked)":owed>0?"Request a loan (you have an active loan)":"Request a loan (up to "+money(LOAN[d.tier])+")";
+  drawLoans(d);
+}
+$("nx").onclick=()=>{try{localStorage.setItem("hb_nx_"+key.slice(0,8),String(cur.noticeAt))}catch(e){}$("notice").hidden=true};
+
+/* ---- loans tab ---- */
+const lmsg=t=>{$("lm").textContent=t};
+function drawLoans(d){
+  const box=$("ln"),owed=d.loanOwed||0;box.textContent="";
+  if(!owed){box.append(el("div","hint","You have no active loans."));return}
+  const pr=d.loanPrincipal||0,total=Math.round(pr*1.05);
+  [["Loan taken",money(pr)],["Interest (5%)",money(total-pr)],["Repaid so far",money(total-owed)],["Still owed",money(owed)]]
+    .forEach(([a,b])=>{const r=el("div","rv");r.append(el("span","",a),el("span","",b));box.appendChild(r)});
+  const pend=reqs.find(r=>r.type==="repayment"&&r.status==="pending");
+  if(pend){box.append(el("div","msg","Your payment of "+money(pend.amount)+" is waiting for your banker to confirm."));return}
+  const f=el("div","rf");f.append(el("label","","Amount to pay back ($)"));
+  const amt=el("input");amt.type="number";amt.min="0.01";amt.step="0.01";amt.max=owed/100;amt.placeholder="Up to "+money(owed);f.append(amt);
+  f.append(el("div","hint","Paid from your balance ("+money(d.balance||0)+"). Your banker confirms each payment."));
+  const go=el("button","","Pay back");go.style.cssText="width:100%;margin-top:10px";
+  go.onclick=async()=>{
+    const p=Math.round(parseFloat(amt.value)*100);
+    if(!(p>0))return lmsg("Enter an amount.");
+    if(p>owed)return lmsg("You only owe "+money(owed)+".");
+    if(p>(cur.balance||0))return lmsg("You don't have enough in your account.");
+    go.disabled=true;
+    try{await setDoc(doc(db,"accounts",key,"requests",rid()),{type:"repayment",amount:p,note:"",status:"pending",at:Date.now()});lmsg("")}
+    catch(e){go.disabled=false;lmsg("Couldn't send your payment.")}
+  };
+  f.append(go);box.append(f);
 }
 
 /* ---- requests ---- */
@@ -168,12 +217,13 @@ function closeForm(){$("rf").textContent=""}
 document.querySelectorAll(".svcs button").forEach(b=>b.onclick=()=>openForm(b.dataset.t));
 function openForm(type){
   msg("");closeForm();
+  if(type==="loan"&&(cur.loanOwed||0)>0)return msg("You already have an active loan.");
   if(reqs.some(r=>r.type===type&&r.status==="pending"))return msg("You already have a pending request of that kind.");
   const f=el("div","rf");let sel,amt;
   f.appendChild(el("h2","",{replacement:"Replace my card",upgrade:"Upgrade my card",loan:"Request a loan"}[type]));
   if(type==="upgrade"){f.appendChild(el("label","","Upgrade to"));sel=el("select");
     ORDER.slice(ORDER.indexOf(cur.tier)+1).forEach(t=>{const o=el("option","",t+" ("+INFO[t].fee+" / month)");o.value=t;sel.appendChild(o)});f.appendChild(sel)}
-  if(type==="loan"){f.appendChild(el("label","","Amount ($, up to "+money(LOAN[cur.tier]||0)+")"));amt=el("input");amt.type="number";amt.min="0.01";amt.step="0.01";f.appendChild(amt)}
+  if(type==="loan"){f.appendChild(el("label","","Amount ($, up to "+money(LOAN[cur.tier]||0)+"). 5% interest is added."));amt=el("input");amt.type="number";amt.min="0.01";amt.step="0.01";f.appendChild(amt)}
   f.appendChild(el("label","","Note for your banker (optional)"));const note=el("input");note.maxLength=140;f.appendChild(note);
   const row=el("div","row"),go=el("button","","Send request"),no=el("button","ghost","Cancel");no.onclick=closeForm;
   go.onclick=async()=>{
@@ -191,11 +241,12 @@ function listenReqs(){
     reqs=s.docs.map(d=>d.data()).sort((a,b)=>b.at-a.at);
     const box=$("rl");box.textContent="";$("rp").hidden=!reqs.length;
     reqs.forEach(r=>{
-      const t=r.type==="upgrade"?"Upgrade to "+r.to:r.type==="loan"?"Loan of "+money(r.amount):"Replacement card";
+      const t=r.type==="upgrade"?"Upgrade to "+r.to:r.type==="loan"?"Loan of "+money(r.amount):r.type==="repayment"?"Loan payment of "+money(r.amount):"Replacement card";
       const d=el("div","req"),row=el("div","row2");
       row.append(el("strong","",t),el("span","pill p-"+r.status,r.status[0].toUpperCase()+r.status.slice(1)));
       d.append(row,el("div","meta",new Date(r.at).toLocaleString([],{dateStyle:"short",timeStyle:"short"})));box.appendChild(d);
     });
+    if(cur)drawLoans(cur);
   },()=>{});
 }
 </script>

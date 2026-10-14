@@ -1,6 +1,6 @@
 // Black Bank side menu. Add <script src="nav.js"></script> to any page.
 (function(){
-  var links=[["index.html","Home"],["order.html","Order a card"],["balance.html","Check balance"],["admin.html","Banker login"]];
+  var links=[["index.html","Home"],["order.html","Order a card"],["balance.html","Account"],["admin.html","Banker login"]];
   var here=location.pathname.split("/").pop()||"index.html";
   var css=document.createElement("style");
   css.textContent=".bbm{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:12px;z-index:50;width:42px;height:42px;border-radius:12px;border:1px solid #2a2a2e;background:rgba(17,17,20,.85);color:#c9a24b;font-size:1.2rem;cursor:pointer;backdrop-filter:blur(6px)}"+

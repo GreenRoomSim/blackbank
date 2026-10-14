@@ -42,6 +42,7 @@ a.item{display:block;color:inherit;text-decoration:none}a.item:hover strong{colo
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:#1b1b1f;border:1px solid var(--accent);padding:11px 18px;border-radius:12px;opacity:0;pointer-events:none;transition:.25s;z-index:20;max-width:90vw;text-align:center}
 #toast.show{opacity:1;transform:translate(-50%,0)}
 .err{color:var(--bad);font-size:.9rem;margin-top:8px;min-height:1.2em}
+.lk{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
 .mbg{position:fixed;inset:0;background:rgba(0,0,0,.8);display:grid;place-items:center;z-index:30;padding:16px}
 .modal{background:var(--card);border:1px solid var(--accent);border-radius:16px;padding:22px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.7)}
 .kick{letter-spacing:4px;text-transform:uppercase;font-size:.68rem;color:var(--accent);margin-bottom:6px}
@@ -79,10 +80,11 @@ const btn=(t,c,f)=>{const b=h("button",c||"",t);if(f)b.onclick=f;return b};
 const num=ph=>{const i=h("input");i.type="number";i.min="0";i.step="0.01";i.placeholder=ph;return i};
 const toast=m=>{const t=$("toast");t.textContent=m;t.className="show";clearTimeout(toast.t);toast.t=setTimeout(()=>t.className="",3800)};
 const when=t=>new Date(t).toLocaleString([],{dateStyle:"short",timeStyle:"short"});
-const STEP=20;
+const STEP=20,LOANRATE=0.05;
+const FEATURES=[["withdrawals","Cash withdrawals"],["deposits","Cash deposits"],["loans","Loan requests"],["upgrades","Card upgrades"],["replacements","Card replacements"]];
 const toP=c=>Math.round(c*RATE/100),toC=p=>Math.round(p*100/RATE);
 const TIERS={"Silver":{fee:0,int:0,wd:0.05},"Silver Max":{fee:250,int:0.02,wd:0.025},"Gold":{fee:600,int:0.02,wd:0,loan:1000},"Black":{fee:1000,int:0.03,wd:0,loan:2500}};
-const LT={cash_in:"Cash added",cash_out:"Cash removed",deposit:"Deposit from bank funds",to_bank:"Moved to bank funds",cash_deposit:"Cash deposit",withdrawal:"Cash withdrawal",fee:"Monthly fee",interest:"Interest paid",closed:"Account closed, balance to bank funds",loan:"Loan paid out"};
+const LT={cash_in:"Cash added",cash_out:"Cash removed",deposit:"Deposit from bank funds",to_bank:"Moved to bank funds",cash_deposit:"Cash deposit",withdrawal:"Cash withdrawal",fee:"Monthly fee",interest:"Interest paid",closed:"Account closed, balance to bank funds",loan:"Loan paid out",repayment:"Loan repayment"};
 let S={ok:false,funds:0,cash:0},accts=[],orders=[],reqs=[],ledger=[],accLedger=[],unsubs=[],known=null,Q="";
 const watch={id:null,u:null};
 const stateRef=()=>doc(db,"bank","state");
@@ -222,10 +224,11 @@ function loanModal(r,a){
   else if(amt>max)bad.push("This is over the "+a.tier+" limit of "+money(max)+".");
   if((a.status||"active")!=="active")bad.push("This account is "+a.status+".");
   if(amt>S.funds)bad.push("The bank funds only hold "+money(S.funds)+".");
+  if((a.loanOwed||0)>0)bad.push("This account already has an active loan ("+money(a.loanOwed)+" owed).");
   const bg=h("div","mbg"),m=h("div","modal"),close=()=>bg.remove();
   bg.onclick=e=>{if(e.target===bg)close()};
   m.append(h("div","kick","Loan approval"),h("h2","","Approve a loan of "+money(amt)+"?"));
-  [["Borrower",a.name+" · "+fmtAcct(a.acct)],["Card",a.tier+" (limit "+money(max)+")"],["Bank funds",money(S.funds)+" → "+money(S.funds-amt)],["Their balance",money(a.balance||0)+" → "+money((a.balance||0)+amt)]]
+  [["Borrower",a.name+" · "+fmtAcct(a.acct)],["Card",a.tier+" (limit "+money(max)+")"],["To be repaid (5% interest)",money(Math.round(amt*(1+LOANRATE)))],["Bank funds",money(S.funds)+" → "+money(S.funds-amt)],["Their balance",money(a.balance||0)+" → "+money((a.balance||0)+amt)]]
     .forEach(([k,v])=>{const row=h("div","mrow");row.append(h("span","",k),h("strong","",v));m.append(row)});
   if(bad.length){bad.forEach(t=>m.append(h("div","mbad","✕ "+t)));const row=h("div","row");row.append(btn("Close","ghost",close));m.append(row)}
   else{
@@ -233,13 +236,50 @@ function loanModal(r,a){
     const lab=h("label","ack"),cb=h("input");cb.type="checkbox";lab.append(cb,h("span","","I understand and approve this loan"));m.append(lab);
     const go=btn("Approve & pay out",null,async()=>{
       go.disabled=true;
-      const ok=await apply([{a,dA:amt,dF:-amt,usd:amt,type:"loan"}],b=>b.update(doc(db,"accounts",r.acctId,"requests",r.id),{status:"approved"}));
+      const ok=await apply([{a,dA:amt,dF:-amt,usd:amt,type:"loan",extra:{loanOwed:Math.round(amt*(1+LOANRATE)),loanPrincipal:amt,loanAt:Date.now()}}],b=>b.update(doc(db,"accounts",r.acctId,"requests",r.id),{status:"approved"}));
       if(ok){close();toast("Loan of "+money(amt)+" paid to "+a.name+".")}else go.disabled=false;
     });
     go.disabled=true;cb.onchange=()=>{go.disabled=!cb.checked};
     const row=h("div","row");row.append(btn("Cancel","ghost",close),go);m.append(row);
   }
   bg.append(m);document.body.append(bg);
+}
+
+/* ---------- loans, banners, feature locks ---------- */
+async function repay(a,c,r){
+  const owed=a.loanOwed||0;
+  if((a.status||"active")!=="active")return toast("This account isn't active.");
+  if(!(c>0)||c>owed)return toast("Enter an amount up to "+money(owed)+".");
+  if(c>(a.balance||0))return toast("Not enough in the account ("+money(a.balance||0)+").");
+  const left=owed-c;
+  const more=r?(b=>b.update(doc(db,"accounts",r.acctId,"requests",r.id),{status:"approved"})):null;
+  if(await apply([{a,dA:-c,dF:c,usd:c,type:"repayment",extra:{loanOwed:left,...(left?{}:{loanPrincipal:0})}}],more))
+    toast("Repayment of "+money(c)+" recorded."+(left?" "+money(left)+" still owed.":" The loan is fully repaid."));
+}
+function remind(a,text){
+  const t=prompt("Banner to show on "+a.name+"'s account page:",text||"Reminder: you owe "+money(a.loanOwed||0)+" on your loan. Please repay it as soon as you can.");
+  if(t===null||!t.trim())return;
+  updateDoc(doc(db,"accounts",a.id),{notice:t.trim().slice(0,200),noticeAt:Date.now()}).then(()=>toast("Banner sent to "+a.name+".")).catch(()=>toast("Couldn't send the banner."));
+}
+const clearNotice=a=>updateDoc(doc(db,"accounts",a.id),{notice:"",noticeAt:Date.now()}).then(()=>toast("Banner cleared.")).catch(()=>toast("Couldn't clear it."));
+const setLock=(a,k,v)=>updateDoc(doc(db,"accounts",a.id),{["locks."+k]:v}).catch(()=>toast("Couldn't change that lock."));
+function pLoans(p){
+  p.append(h("h1","pt","Loans"));
+  const L=accts.filter(a=>(a.loanOwed||0)>0).sort((x,y)=>(x.loanAt||0)-(y.loanAt||0)),owed=L.reduce((s,a)=>s+a.loanOwed,0),g=h("div","grid");
+  [["Active loans",String(L.length)],["Total owed to the bank",money(owed),1]].forEach(([l,v,gold])=>{const t=h("div","tile"+(gold?" gold":""));t.append(h("small","",l),h("b","",v));g.append(t)});
+  const box=h("div","panel");
+  if(!L.length)box.append(h("div","empty","No active loans."));
+  L.forEach(a=>{
+    const i=h("div","item"),t=h("div","row2"),days=Math.floor((Date.now()-(a.loanAt||Date.now()))/864e5);
+    const nm=h("a","",a.name);nm.href="#account/"+a.id;nm.style.cssText="color:inherit;font-weight:600;text-decoration:none";
+    t.append(nm,h("strong","",money(a.loanOwed)+" owed"));
+    i.append(t,h("div","meta",a.tier+" · borrowed "+money(a.loanPrincipal||0)+" + 5% · "+(days?days+" day(s) ago":"today")+" · balance "+money(a.balance||0)+(a.notice?" · banner sent "+when(a.noticeAt):"")));
+    const r=h("div","row"),amt=num("Repayment $");
+    r.append(amt,btn("Record repayment",null,()=>repay(a,pence(amt))),btn("Send reminder banner","ghost",()=>remind(a)));
+    if(a.notice)r.append(btn("Clear banner","ghost",()=>clearNotice(a)));
+    i.append(r);box.append(i);
+  });
+  p.append(g,box,h("h2","","Recent loan activity"),feed(ledger.filter(l=>l.type==="loan"||l.type==="repayment")));
 }
 
 /* ---------- pages ---------- */
@@ -294,10 +334,10 @@ function pReqs(p){
   if(!rows.length)box.append(h("div","empty","No requests."));
   rows.forEach(r=>{
     const a=accts.find(x=>x.id===r.acctId),i=h("div","item"),t=h("div","row2");
-    t.append(h("strong","",r.type==="upgrade"?"Upgrade to "+r.to:r.type==="loan"?"Loan of "+money(r.amount||0):"Replacement card"),h("span","pill "+(r.status==="pending"?"g":r.status==="approved"?"k":"r"),r.status));
+    t.append(h("strong","",r.type==="upgrade"?"Upgrade to "+r.to:r.type==="loan"?"Loan of "+money(r.amount||0):r.type==="repayment"?"Loan repayment of "+money(r.amount||0):"Replacement card"),h("span","pill "+(r.status==="pending"?"g":r.status==="approved"?"k":"r"),r.status));
     i.append(t,h("div","meta",a.name+" · "+a.tier+" · "+fmtAcct(a.acct)+" · "+when(r.at)));
     if(r.note)i.append(h("div","meta","Note: "+r.note));
-    if(r.status==="pending"){const w=h("div","row");w.append(btn("Approve",null,()=>r.type==="loan"?loanModal(r,a):resolve(r,"approved")),btn("Decline","danger",()=>resolve(r,"declined")));i.append(w)}
+    if(r.status==="pending"){const w=h("div","row");w.append(btn("Approve",null,()=>r.type==="loan"?loanModal(r,a):r.type==="repayment"?(confirm("Take "+money(r.amount||0)+" from "+a.name+"'s balance as a loan repayment?")&&repay(a,r.amount||0,r)):resolve(r,"approved")),btn("Decline","danger",()=>resolve(r,"declined")));i.append(w)}
     box.append(i);
   });
   p.append(box);
@@ -323,7 +363,7 @@ function pAcct(p,id){
   const T=TIERS[a.tier]||TIERS.Silver,live=(a.status||"active")==="active";
   p.append(h("h1","pt",a.name),h("div","sub",fmtAcct(a.acct)+" · "+a.tier+" · "+(a.status||"active")));
   const g=h("div","grid");
-  [["Balance",money(a.balance||0),1],["Monthly fee",money(T.fee)],["Interest",(T.int*100)+"%"],["Withdrawal fee",(T.wd*100)+"%"]].forEach(([l,v,gold])=>{
+  [["Balance",money(a.balance||0),1],["Monthly fee",money(T.fee)],["Interest",(T.int*100)+"%"],["Withdrawal fee",(T.wd*100)+"%"],...((a.loanOwed||0)>0?[["Loan owed",money(a.loanOwed)]]:[])].forEach(([l,v,gold])=>{
     const t=h("div","tile"+(gold?" gold":""));t.append(h("small","",l),h("b","",v));g.append(t)});
   p.append(g);
   const cp=h("div","panel"),ci=num("Amount in £"),pv=h("div","hint"),r1=h("div","row");
@@ -338,12 +378,20 @@ function pAcct(p,id){
   r3.append(btn("Take Monthly Fee",null,()=>charge([a],"fee",1)),btn("Add Interest","ghost",()=>charge([a],"interest",1)));
   mo.append(h("h2","","Month end"),r3);
   [dep,wd,...mp.querySelectorAll("button"),...r3.children,ci,mi].forEach(x=>x.disabled=!live);
+  const lk=a.locks||{},mb=mp.querySelectorAll("button");
+  if(lk.deposits){dep.disabled=true;mb[0].disabled=true}
+  if(lk.withdrawals){wd.disabled=true;mb[1].disabled=true}
   const sp=h("div","panel"),sel=h("select");
   [["active","Active"],["frozen","Frozen"],["locked","Locked"]].forEach(([v,l])=>{const o=h("option","",l);o.value=v;if(v===(a.status||"active"))o.selected=true;sel.append(o)});
   sel.onchange=()=>setStatus(a,sel.value);
   const r4=h("div","row");r4.append(sel,btn("Change PIN","ghost",()=>changePin(a)),btn("Change number","ghost",()=>renumber(a)),btn("Close account","danger",()=>closeAcct(a)));
   sp.append(h("h2","","Account"),r4);
-  p.append(cp,mp,mo,sp,h("h2","","Activity"),feed(accLedger));
+  const lp=h("div","panel");
+  lp.append(h("h2","","Feature locks"),h("div","hint","Locks are manual. Nothing locks or unlocks by itself."));
+  FEATURES.forEach(([k,l])=>{const on=!!lk[k],row=h("div","lk"),left=h("span","",l+" ");left.append(h("span","pill "+(on?"r":"k"),on?"Locked":"Open"));row.append(left,btn(on?"Unlock":"Lock",on?null:"ghost",()=>setLock(a,k,!on)));lp.append(row)});
+  const br=h("div","row");br.append(btn("Send banner","ghost",()=>remind(a,a.notice||"Notice from your banker: ")));if(a.notice)br.append(btn("Clear banner","ghost",()=>clearNotice(a)));
+  lp.append(h("h2","","Banner"),h("div","hint","Current banner: "+(a.notice||"none")),br);
+  p.append(cp,mp,mo,lp,sp,h("h2","","Activity"),feed(accLedger));
 }
 function watchAcct(id){
   if(watch.id===id)return;
@@ -356,13 +404,13 @@ function draw(force){
   if(!configured||$("appView").hidden)return;
   const head=route().split("/")[0],po=orders.filter(o=>o.status!=="delivered").length,pr=reqs.filter(r=>r.status==="pending"&&accts.some(a=>a.id===r.acctId)).length;
   const nav=$("tabs");nav.textContent="";
-  [["funds","Funds",0],["orders","Orders",po],["requests","Requests",pr],["accounts","Accounts",0]].forEach(([k,l,n])=>{
+  [["funds","Funds",0],["orders","Orders",po],["requests","Requests",pr],["loans","Loans",accts.filter(a=>(a.loanOwed||0)>0).length],["accounts","Accounts",0]].forEach(([k,l,n])=>{
     const a=h("a",head===k||(k==="accounts"&&head==="account")?"on":"",l);a.href="#"+k;if(n)a.append(h("span","badge",n));nav.append(a)});
   const ae=document.activeElement;
   if(!force&&ae&&$("page").contains(ae)&&/INPUT|SELECT/.test(ae.tagName))return;
   const r=route().split("/"),p=$("page");p.textContent="";
   watchAcct(r[0]==="account"?r[1]:null);
-  ({funds:pFunds,orders:pOrders,requests:pReqs,accounts:pAccts,account:pAcct}[r[0]]||pFunds)(p,r[1]);
+  ({funds:pFunds,orders:pOrders,requests:pReqs,loans:pLoans,accounts:pAccts,account:pAcct}[r[0]]||pFunds)(p,r[1]);
 }
 window.onhashchange=()=>{window.scrollTo(0,0);draw(true)};
 const er=e=>{if(e.code==="permission-denied"){$("err").textContent="That account isn't the banker account.";signOut(auth)}};
