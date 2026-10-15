@@ -267,7 +267,7 @@ function confirmStep(to,p,note){
       return smsg("Incorrect PIN.",1);
     }
     tfails=0;
-    try{await setDoc(doc(db,"accounts",key,"requests",rid()),{type:"transfer",toAcct:to,amount:p,note,status:"pending",at:Date.now()});initSend();smsg("Payment sent. Your banker will confirm it shortly.")}
+    try{await setDoc(doc(db,"accounts",key,"requests",rid()),{type:"transfer",toAcct:to,amount:p,note,status:"pending",at:Date.now()});initSend();smsg("Payment sent. If payment is not recieved, please wait for the bank to confirm the payment.")}
     catch(e){initSend();smsg("Couldn't send your payment.",1)}
   }
   ["1","2","3","4","5","6","7","8","9","","0","⌫"].forEach(d=>{const b=el("button","",d);if(!d)b.style.visibility="hidden";
