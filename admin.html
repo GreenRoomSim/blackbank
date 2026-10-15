@@ -73,7 +73,7 @@ a.item{display:block;color:inherit;text-decoration:none}a.item:hover strong{colo
 <div id="toast"></div>
 <script type="module">
 import { db, auth, configured, doc, setDoc, increment, writeBatch, updateDoc, deleteDoc, accountKey, fmtAcct, money, gbp, RATE,
-  onSnapshot, collection, collectionGroup, query, orderBy, where, limit, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "./firebase-init.js";
+  onSnapshot, runTransaction, collection, collectionGroup, query, orderBy, where, limit, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "./firebase-init.js";
 const $=id=>document.getElementById(id);
 const h=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e};
 const btn=(t,c,f)=>{const b=h("button",c||"",t);if(f)b.onclick=f;return b};
@@ -85,7 +85,7 @@ const FEATURES=[["withdrawals","Cash withdrawals"],["deposits","Cash deposits"],
 const toP=c=>Math.round(c*RATE/100),toC=p=>Math.round(p*100/RATE);
 const TIERS={"Silver":{fee:0,int:0,wd:0.05},"Silver Max":{fee:250,int:0.02,wd:0.025},"Gold":{fee:600,int:0.02,wd:0,loan:1000},"Black":{fee:1000,int:0.03,wd:0,loan:2500}};
 const LT={cash_in:"Cash added",cash_out:"Cash removed",deposit:"Deposit from bank funds",to_bank:"Moved to bank funds",cash_deposit:"Cash deposit",withdrawal:"Cash withdrawal",fee:"Monthly fee",interest:"Interest paid",closed:"Account closed, balance to bank funds",loan:"Loan paid out",repayment:"Loan repayment",transfer_out:"Transfer sent",transfer_in:"Transfer received"};
-let S={ok:false,funds:0,cash:0},accts=[],orders=[],reqs=[],ledger=[],accLedger=[],unsubs=[],known=null,Q="";
+let S={ok:false,funds:0,cash:0},ST={autoTransfers:false,autoMax:5000},busy=new Set(),accts=[],orders=[],reqs=[],ledger=[],accLedger=[],unsubs=[],known=null,Q="";
 const watch={id:null,u:null};
 const stateRef=()=>doc(db,"bank","state");
 const route=()=>location.hash.slice(1)||"funds";
@@ -245,6 +245,45 @@ function loanModal(r,a){
   bg.append(m);document.body.append(bg);
 }
 
+/* ---------- automatic transfer approval (runs while this page is open) ---------- */
+const saveAuto=patch=>setDoc(doc(db,"bank","settings"),{autoTransfers:ST.autoTransfers,autoMax:ST.autoMax,...patch},{merge:true}).then(()=>toast("Saved.")).catch(()=>toast("Couldn't save that."));
+function transferProblems(r,a,to){
+  const amt=r.amount||0,bad=[];
+  if(!to||to.id===a.id)bad.push("recipient");
+  else{if((to.status||"active")!=="active")bad.push("recipient status");if(to.locks&&to.locks.deposits)bad.push("recipient lock")}
+  if((a.status||"active")!=="active"||(a.locks&&a.locks.transfers))bad.push("sender");
+  if(!(amt>0)||amt>(a.balance||0))bad.push("funds");
+  return bad;
+}
+function autoProcess(){
+  if(!ST.autoTransfers||!S.ok)return;
+  reqs.filter(r=>r.type==="transfer"&&r.status==="pending"&&!busy.has(r.id)).forEach(r=>{
+    const a=accts.find(x=>x.id===r.acctId),to=accts.find(x=>x.acct===r.toAcct);
+    if(a&&to&&(r.amount||0)<=ST.autoMax&&!transferProblems(r,a,to).length)autoTransfer(r,a,to);
+  });
+}
+async function autoTransfer(r,a,to){
+  busy.add(r.id);
+  try{
+    const ok=await runTransaction(db,async tx=>{
+      const rr=doc(db,"accounts",r.acctId,"requests",r.id),sr=doc(db,"accounts",a.id),tr=doc(db,"accounts",to.id);
+      const [rs,ss,ts]=await Promise.all([tx.get(rr),tx.get(sr),tx.get(tr)]);
+      if(!rs.exists()||rs.data().status!=="pending"||!ss.exists()||!ts.exists())return false;
+      const q=rs.data(),A={id:sr.id,...ss.data()},T={id:tr.id,...ts.data()};
+      if(q.toAcct!==T.acct||(q.amount||0)>ST.autoMax||transferProblems(q,A,T).length)return false;
+      const amt=q.amount,now=Date.now();
+      tx.update(sr,{balance:A.balance-amt});
+      tx.update(tr,{balance:T.balance+amt,...(T.notice?{}:{notice:"You received "+money(amt)+" from "+A.name+".",noticeAt:now})});
+      tx.update(rr,{status:"approved"});
+      const L=(x,type,cp)=>tx.set(doc(collection(db,"ledger")),{type,acctId:x.id,name:x.name,acct:x.acct,usd:amt,fee:0,gbp:0,cp,at:now});
+      L(A,"transfer_out",T.name);L(T,"transfer_in",A.name);
+      return true;
+    });
+    if(ok)toast("Auto-approved "+money(r.amount)+" from "+a.name+" to "+to.name+".");
+  }catch(e){}
+  busy.delete(r.id);
+}
+
 /* ---------- transfers between accounts ---------- */
 function transferModal(r,a){
   const amt=r.amount||0,to=accts.find(x=>x.acct===r.toAcct),bad=[];
@@ -343,7 +382,13 @@ function pFunds(p){
   const mp=h("div","panel"),mr=h("div","row");
   mr.append(btn("Take Monthly Fee (all)",null,()=>charge(accts,"fee")),btn("Add Interest (all)","ghost",()=>charge(accts,"interest")));
   mp.append(h("h2","","Month end"),h("div","hint","Fees move dollars into the bank funds. Interest is paid out of them."),mr);
-  p.append(cp,mp,h("h2","","Recent activity"),feed(ledger));
+  const ap=h("div","panel"),al=num("Max per transfer $"),ar=h("div","row");
+  al.value=(ST.autoMax/100).toFixed(2);
+  ar.append(btn(ST.autoTransfers?"Turn off":"Turn on",ST.autoTransfers?"ghost":null,()=>saveAuto({autoTransfers:!ST.autoTransfers})),al,
+    btn("Save limit","ghost",()=>{const c=Math.round(parseFloat(al.value)*100);if(!(c>0))return toast("Enter a limit.");saveAuto({autoMax:c})}));
+  ap.append(h("h2","","Automatic approvals"),
+    h("div","hint","Customer transfers: "+(ST.autoTransfers?"ON":"OFF")+". When on, a PIN-confirmed transfer is approved automatically while this page is open, if it passes every check and is within the limit. Anything else waits for you."),ar);
+  p.append(cp,mp,ap,h("h2","","Recent activity"),feed(ledger));
 }
 function pOrders(p){
   p.append(h("h1","pt","Orders"));
@@ -436,6 +481,7 @@ function watchAcct(id){
 /* ---------- shell ---------- */
 function draw(force){
   if(!configured||$("appView").hidden)return;
+  autoProcess();
   const head=route().split("/")[0],po=orders.filter(o=>o.status!=="delivered").length,pr=reqs.filter(r=>r.status==="pending"&&accts.some(a=>a.id===r.acctId)).length;
   const nav=$("tabs");nav.textContent="";
   [["funds","Funds",0],["orders","Orders",po],["requests","Requests",pr],["loans","Loans",accts.filter(a=>(a.loanOwed||0)>0).length],["accounts","Accounts",0]].forEach(([k,l,n])=>{
@@ -452,6 +498,7 @@ function listen(){
   stop();
   unsubs=[
     onSnapshot(stateRef(),s=>{S=s.exists()?{ok:true,...s.data()}:{ok:false,funds:0,cash:0};draw()},er),
+    onSnapshot(doc(db,"bank","settings"),s=>{ST={autoTransfers:false,autoMax:5000,...(s.exists()?s.data():{})};draw()},()=>{}),
     onSnapshot(collection(db,"accounts"),s=>{accts=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.created-a.created);draw()},er),
     onSnapshot(query(collection(db,"orders"),orderBy("at","desc")),s=>{
       const l=s.docs.map(d=>({id:d.id,...d.data()}));
