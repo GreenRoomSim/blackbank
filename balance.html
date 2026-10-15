@@ -76,7 +76,7 @@ button:disabled{opacity:.4;cursor:default}
     <div class="frz" id="frz">This account is frozen. Transactions are on hold. Please contact your banker.</div>
     <div class="card" id="card"><div class="b">BLACK BANK</div><div class="n" id="cn"></div><div class="h" id="ch"></div><div class="t" id="ct"></div></div>
     <div class="bal" id="bal">$0.00</div><div class="lbl">Available balance</div>
-    <div class="tabs2" id="tb"><button class="on" data-v="vOv">Overview</button><button data-v="vLn">Loans</button></div>
+    <div class="tabs2" id="tb"><button class="on" data-v="vOv">Overview</button><button data-v="vLn">Loans</button><button data-v="vSd">Send</button></div>
     <div id="vOv">
       <div class="panel"><h2>Your card</h2><div id="det"></div></div>
       <div class="panel"><h2>Services</h2>
@@ -90,6 +90,7 @@ button:disabled{opacity:.4;cursor:default}
       <div class="panel" id="rp" hidden><h2>My requests</h2><div id="rl"></div></div>
     </div>
     <div id="vLn" hidden><div class="panel"><h2>Loans</h2><div id="ln"></div><div class="msg" id="lm"></div></div></div>
+    <div id="vSd" hidden><div class="panel"><h2>Send money</h2><div id="sd"></div><div class="msg" id="sm"></div></div></div>
     <button class="out" id="out">Sign out</button>
   </div>
 </main>
@@ -102,7 +103,7 @@ const INFO={"Silver":{fee:"$0.00",int:"0%",wd:"5%",perks:["Free to hold"]},
  "Gold":{fee:"$6.00",int:"2%",wd:"None",perks:["Free card replacements","Loans up to $10.00"]},
  "Black":{fee:"$10.00",int:"3%",wd:"None",perks:["Free card replacements","Exclusive services","Loans up to $25.00 (highest limit)"]}};
 const ORDER=["Silver","Silver Max","Gold","Black"],LOAN={"Gold":1000,"Black":2500};
-const LOCKN={withdrawals:"Withdrawals",deposits:"Deposits",loans:"Loan requests",upgrades:"Upgrades",replacements:"Replacements"};
+const LOCKN={withdrawals:"Withdrawals",deposits:"Deposits",loans:"Loan requests",upgrades:"Upgrades",replacements:"Replacements",transfers:"Sending money"};
 let pin="",unsubA=null,unsubR=null,key=null,cur=null,reqs=[],shown=0,fails=0,lockUntil=0,live=false,revealed=false;
 
 /* ---- keypad sign-in ---- */
@@ -142,19 +143,19 @@ async function signIn(){
 }
 const first=n=>{const w=n.trim().split(/\s+/)[0];return w.charAt(0).toUpperCase()+w.slice(1)};
 function enter(d){
-  live=true;$("form").style.display="none";$("wt").textContent=first(d.name);$("welcome").style.display="grid";
+  live=true;$("form").style.display="none";$("wt").textContent=first(d.name);$("welcome").style.display="grid";initSend();
   listenReqs();
   setTimeout(()=>{$("welcome").style.display="none";$("acct").style.display="block";revealed=true;count(cur.balance)},1900);
 }
 function out(m){
   if(unsubA)unsubA();if(unsubR)unsubR();unsubA=unsubR=null;
-  live=revealed=false;pin="";shown=0;cur=null;reqs=[];dots();closeForm();$("rm").textContent="";$("lm").textContent="";tab("vOv");
+  live=revealed=false;pin="";shown=0;cur=null;reqs=[];dots();closeForm();$("rm").textContent="";$("lm").textContent="";tab("vOv");$("sd").textContent="";
   $("acct").style.display="none";$("welcome").style.display="none";$("form").style.display="block";$("an").value="";$("err").textContent=m||"";
 }
 $("out").onclick=()=>out("");
 
 /* ---- tabs ---- */
-function tab(v){["vOv","vLn"].forEach(x=>$(x).hidden=x!==v);document.querySelectorAll("#tb button").forEach(b=>b.classList.toggle("on",b.dataset.v===v))}
+function tab(v){["vOv","vLn","vSd"].forEach(x=>$(x).hidden=x!==v);document.querySelectorAll("#tb button").forEach(b=>b.classList.toggle("on",b.dataset.v===v))}
 document.querySelectorAll("#tb button").forEach(b=>b.onclick=()=>tab(b.dataset.v));
 
 /* ---- account view ---- */
@@ -180,7 +181,7 @@ function render(d,st){
   sv[1].disabled=d.tier==="Black"||!!lk.upgrades;sv[1].textContent="Upgrade my card"+(lk.upgrades?" (locked)":"");
   sv[2].disabled=!LOAN[d.tier]||owed>0||!!lk.loans;
   sv[2].textContent=!LOAN[d.tier]?"Request a loan (Gold and Black)":lk.loans?"Request a loan (locked)":owed>0?"Request a loan (you have an active loan)":"Request a loan (up to "+money(LOAN[d.tier])+")";
-  drawLoans(d);
+  drawLoans(d);sendState(d);
 }
 $("nx").onclick=()=>{try{localStorage.setItem("hb_nx_"+key.slice(0,8),String(cur.noticeAt))}catch(e){}$("notice").hidden=true};
 
@@ -208,6 +209,62 @@ function drawLoans(d){
     catch(e){go.disabled=false;lmsg("Couldn't send your payment.")}
   };
   f.append(go);box.append(f);
+}
+
+/* ---- send money (confirmed with PIN, then approved by the banker) ---- */
+let tfails=0,tlock=0;
+const smsg=(t,bad)=>{$("sm").textContent=t;$("sm").style.color=bad?"var(--bad)":""};
+function initSend(){
+  const box=$("sd");box.textContent="";smsg("");
+  const f=el("div");f.id="sf";
+  const a1=el("input");a1.id="sa";a1.inputMode="numeric";a1.placeholder="0000 2026";a1.maxLength=19;
+  a1.oninput=()=>{a1.value=fmtAcct(a1.value.replace(/\D/g,"").slice(0,16))};
+  const a2=el("input");a2.id="sv";a2.type="number";a2.min="0.01";a2.step="0.01";a2.placeholder="0.00";
+  const a3=el("input");a3.id="sn";a3.maxLength=60;a3.placeholder="e.g. lunch money";
+  const go=el("button","","Review payment");go.style.cssText="width:100%;margin-top:6px";go.onclick=review;
+  const w=el("div","hint");w.id="sw";
+  f.append(el("label","","Recipient's account number"),a1,el("label","","Amount ($)"),a2,el("label","","Reference (optional)"),a3,go,w);
+  const c=el("div");c.id="sc";c.hidden=true;box.append(f,c);
+  if(cur)sendState(cur);
+}
+function sendState(d){
+  const lk=d.locks||{},frz=(d.status||"active")!=="active",off=!!lk.transfers||frz;
+  document.querySelectorAll("#sf input,#sf button").forEach(x=>x.disabled=off);
+  const n=$("sw");if(n)n.textContent=lk.transfers?"Sending money is locked by your banker.":frz?"Sending money is unavailable while your account is frozen.":"";
+}
+function review(){
+  smsg("");
+  const to=$("sa").value.replace(/\D/g,""),p=Math.round(parseFloat($("sv").value)*100);
+  if(to.length!==8&&to.length!==16)return smsg("Enter the recipient's account number.",1);
+  if(to===cur.acct)return smsg("You can't send money to your own account.",1);
+  if(!(p>0))return smsg("Enter an amount.",1);
+  const pend=reqs.filter(r=>r.type==="transfer"&&r.status==="pending").reduce((s,r)=>s+r.amount,0);
+  if(p+pend>(cur.balance||0))return smsg("You don't have enough in your account"+(pend?" ("+money(pend)+" is already waiting to be sent)":"")+".",1);
+  if(Date.now()<tlock)return smsg("Too many wrong PINs. Please wait a moment.",1);
+  confirmStep(to,p,$("sn").value.trim());
+}
+function confirmStep(to,p,note){
+  $("sf").hidden=true;const c=$("sc");c.hidden=false;c.textContent="";let tp="";
+  c.append(el("h2","","Confirm payment"));
+  [["To",fmtAcct(to)],["Amount",money(p)],...(note?[["Reference",note]]:[])].forEach(([a,b])=>{const r=el("div","rv");r.append(el("span","",a),el("span","",b));c.append(r)});
+  c.append(el("div","hint","Enter your PIN to confirm this payment."));
+  const pd=el("div","pd"),pad=el("div","pad");for(let i=0;i<4;i++)pd.append(el("i"));
+  const dots=()=>[...pd.children].forEach((i,n)=>i.className=n<tp.length?"f":"");
+  const cancel=el("button","ghost","Cancel");cancel.style.cssText="width:100%;margin-top:14px";
+  cancel.onclick=()=>{$("sc").hidden=true;$("sf").hidden=false;smsg("")};
+  async function submit(){
+    if(await accountKey(cur.acct,tp)!==key){
+      tp="";dots();pd.classList.remove("shake");void pd.offsetWidth;pd.classList.add("shake");
+      if(++tfails>=3){tfails=0;tlock=Date.now()+30000;initSend();return smsg("Too many wrong PINs. Please wait a moment.",1)}
+      return smsg("Incorrect PIN.",1);
+    }
+    tfails=0;
+    try{await setDoc(doc(db,"accounts",key,"requests",rid()),{type:"transfer",toAcct:to,amount:p,note,status:"pending",at:Date.now()});initSend();smsg("Payment sent. Your banker will confirm it shortly.")}
+    catch(e){initSend();smsg("Couldn't send your payment.",1)}
+  }
+  ["1","2","3","4","5","6","7","8","9","","0","⌫"].forEach(d=>{const b=el("button","",d);if(!d)b.style.visibility="hidden";
+    b.onclick=()=>{if(d==="⌫")tp=tp.slice(0,-1);else if(tp.length<4)tp+=d;dots();if(tp.length===4)submit()};pad.append(b)});
+  c.append(pd,pad,cancel);
 }
 
 /* ---- requests ---- */
@@ -241,7 +298,7 @@ function listenReqs(){
     reqs=s.docs.map(d=>d.data()).sort((a,b)=>b.at-a.at);
     const box=$("rl");box.textContent="";$("rp").hidden=!reqs.length;
     reqs.forEach(r=>{
-      const t=r.type==="upgrade"?"Upgrade to "+r.to:r.type==="loan"?"Loan of "+money(r.amount):r.type==="repayment"?"Loan payment of "+money(r.amount):"Replacement card";
+      const t=r.type==="upgrade"?"Upgrade to "+r.to:r.type==="loan"?"Loan of "+money(r.amount):r.type==="repayment"?"Loan payment of "+money(r.amount):r.type==="transfer"?"Transfer of "+money(r.amount)+" to "+fmtAcct(r.toAcct):"Replacement card";
       const d=el("div","req"),row=el("div","row2");
       row.append(el("strong","",t),el("span","pill p-"+r.status,r.status[0].toUpperCase()+r.status.slice(1)));
       d.append(row,el("div","meta",new Date(r.at).toLocaleString([],{dateStyle:"short",timeStyle:"short"})));box.appendChild(d);

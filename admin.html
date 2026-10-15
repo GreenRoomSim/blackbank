@@ -81,10 +81,10 @@ const num=ph=>{const i=h("input");i.type="number";i.min="0";i.step="0.01";i.plac
 const toast=m=>{const t=$("toast");t.textContent=m;t.className="show";clearTimeout(toast.t);toast.t=setTimeout(()=>t.className="",3800)};
 const when=t=>new Date(t).toLocaleString([],{dateStyle:"short",timeStyle:"short"});
 const STEP=5,LOANRATE=0.05;
-const FEATURES=[["withdrawals","Cash withdrawals"],["deposits","Cash deposits"],["loans","Loan requests"],["upgrades","Card upgrades"],["replacements","Card replacements"]];
+const FEATURES=[["withdrawals","Cash withdrawals"],["deposits","Cash deposits"],["loans","Loan requests"],["upgrades","Card upgrades"],["replacements","Card replacements"],["transfers","Sending money"]];
 const toP=c=>Math.round(c*RATE/100),toC=p=>Math.round(p*100/RATE);
 const TIERS={"Silver":{fee:0,int:0,wd:0.05},"Silver Max":{fee:250,int:0.02,wd:0.025},"Gold":{fee:600,int:0.02,wd:0,loan:1000},"Black":{fee:1000,int:0.03,wd:0,loan:2500}};
-const LT={cash_in:"Cash added",cash_out:"Cash removed",deposit:"Deposit from bank funds",to_bank:"Moved to bank funds",cash_deposit:"Cash deposit",withdrawal:"Cash withdrawal",fee:"Monthly fee",interest:"Interest paid",closed:"Account closed, balance to bank funds",loan:"Loan paid out",repayment:"Loan repayment"};
+const LT={cash_in:"Cash added",cash_out:"Cash removed",deposit:"Deposit from bank funds",to_bank:"Moved to bank funds",cash_deposit:"Cash deposit",withdrawal:"Cash withdrawal",fee:"Monthly fee",interest:"Interest paid",closed:"Account closed, balance to bank funds",loan:"Loan paid out",repayment:"Loan repayment",transfer_out:"Transfer sent",transfer_in:"Transfer received"};
 let S={ok:false,funds:0,cash:0},accts=[],orders=[],reqs=[],ledger=[],accLedger=[],unsubs=[],known=null,Q="";
 const watch={id:null,u:null};
 const stateRef=()=>doc(db,"bank","state");
@@ -99,7 +99,7 @@ async function apply(ops,more){
   const b=writeBatch(db),now=Date.now();
   ops.forEach(o=>{
     if(o.a)b.update(doc(db,"accounts",o.a.id),{balance:increment(o.dA),...(o.extra||{})});
-    b.set(doc(collection(db,"ledger")),{type:o.type,acctId:o.a?o.a.id:null,name:o.a?o.a.name:"",acct:o.a?o.a.acct:"",usd:o.usd||0,fee:o.fee||0,gbp:o.gbp||0,at:now});
+    b.set(doc(collection(db,"ledger")),{type:o.type,acctId:o.a?o.a.id:null,name:o.a?o.a.name:"",acct:o.a?o.a.acct:"",usd:o.usd||0,fee:o.fee||0,gbp:o.gbp||0,cp:o.cp||"",at:now});
   });
   if(dF||dC)b.set(stateRef(),{funds:increment(dF),cash:increment(dC)},{merge:true});
   if(more)more(b);
@@ -245,6 +245,40 @@ function loanModal(r,a){
   bg.append(m);document.body.append(bg);
 }
 
+/* ---------- transfers between accounts ---------- */
+function transferModal(r,a){
+  const amt=r.amount||0,to=accts.find(x=>x.acct===r.toAcct),bad=[];
+  if(!S.ok)bad.push("Start the new system on the Funds page first.");
+  if(!to)bad.push("No account has the number "+fmtAcct(r.toAcct||"")+".");
+  else{
+    if(to.id===a.id)bad.push("That's the sender's own account.");
+    if((to.status||"active")!=="active")bad.push(to.name+"'s account is "+to.status+".");
+    if(to.locks&&to.locks.deposits)bad.push("Deposits are locked on "+to.name+"'s account.");
+  }
+  if((a.status||"active")!=="active")bad.push("The sender's account is "+a.status+".");
+  if(a.locks&&a.locks.transfers)bad.push("Sending money is locked on the sender's account.");
+  if(amt>(a.balance||0))bad.push(a.name+" only has "+money(a.balance||0)+".");
+  const bg=h("div","mbg"),m=h("div","modal"),close=()=>bg.remove();
+  bg.onclick=e=>{if(e.target===bg)close()};
+  m.append(h("div","kick","Transfer approval"),h("h2","","Send "+money(amt)+"?"));
+  [["From",a.name+" · "+fmtAcct(a.acct)],["To",to?to.name+" · "+fmtAcct(to.acct):fmtAcct(r.toAcct||"")],["Sender balance",money(a.balance||0)+" → "+money((a.balance||0)-amt)],
+   ...(to?[["Recipient balance",money(to.balance||0)+" → "+money((to.balance||0)+amt)]]:[]),...(r.note?[["Reference",r.note]]:[])]
+    .forEach(([k,v])=>{const row=h("div","mrow");row.append(h("span","",k),h("strong","",v));m.append(row)});
+  if(bad.length){bad.forEach(t=>m.append(h("div","mbad","✕ "+t)));const row=h("div","row");row.append(btn("Close","ghost",close));m.append(row)}
+  else{
+    m.append(h("p","hint","The customer confirmed this payment with their PIN. It moves "+money(amt)+" from "+a.name+" to "+to.name+" and is recorded in the ledger."));
+    const row=h("div","row"),go=btn("Approve & send",null,async()=>{
+      go.disabled=true;
+      const ok=await apply([{a,dA:-amt,usd:amt,type:"transfer_out",cp:to.name},
+        {a:to,dA:amt,usd:amt,type:"transfer_in",cp:a.name,extra:to.notice?{}:{notice:"You received "+money(amt)+" from "+a.name+".",noticeAt:Date.now()}}],
+        b=>b.update(doc(db,"accounts",r.acctId,"requests",r.id),{status:"approved"}));
+      if(ok){close();toast("Sent "+money(amt)+" from "+a.name+" to "+to.name+".")}else go.disabled=false;
+    });
+    row.append(btn("Cancel","ghost",close),go);m.append(row);
+  }
+  bg.append(m);document.body.append(bg);
+}
+
 /* ---------- loans, banners, feature locks ---------- */
 async function repay(a,c,r){
   const owed=a.loanOwed||0;
@@ -287,7 +321,7 @@ function feed(list){
   const box=h("div","panel");
   if(!list.length)box.append(h("div","empty","No activity yet."));
   list.forEach(r=>{const i=h("div","item"),t=h("div","row2");
-    t.append(h("strong","",(LT[r.type]||r.type)+(r.name?" · "+r.name:"")),h("span","",money(r.usd)+(r.gbp?" / "+gbp(r.gbp):"")));
+    t.append(h("strong","",(LT[r.type]||r.type)+(r.name?" · "+r.name:"")+(r.cp?" ⇄ "+r.cp:"")),h("span","",money(r.usd)+(r.gbp?" / "+gbp(r.gbp):"")));
     i.append(t,h("div","meta",when(r.at)+(r.fee?" · fee "+money(r.fee):"")));box.append(i)});
   return box;
 }
@@ -334,10 +368,10 @@ function pReqs(p){
   if(!rows.length)box.append(h("div","empty","No requests."));
   rows.forEach(r=>{
     const a=accts.find(x=>x.id===r.acctId),i=h("div","item"),t=h("div","row2");
-    t.append(h("strong","",r.type==="upgrade"?"Upgrade to "+r.to:r.type==="loan"?"Loan of "+money(r.amount||0):r.type==="repayment"?"Loan repayment of "+money(r.amount||0):"Replacement card"),h("span","pill "+(r.status==="pending"?"g":r.status==="approved"?"k":"r"),r.status));
+    t.append(h("strong","",r.type==="upgrade"?"Upgrade to "+r.to:r.type==="loan"?"Loan of "+money(r.amount||0):r.type==="repayment"?"Loan repayment of "+money(r.amount||0):r.type==="transfer"?"Transfer of "+money(r.amount||0)+" to "+fmtAcct(r.toAcct||""):"Replacement card"),h("span","pill "+(r.status==="pending"?"g":r.status==="approved"?"k":"r"),r.status));
     i.append(t,h("div","meta",a.name+" · "+a.tier+" · "+fmtAcct(a.acct)+" · "+when(r.at)));
     if(r.note)i.append(h("div","meta","Note: "+r.note));
-    if(r.status==="pending"){const w=h("div","row");w.append(btn("Approve",null,()=>r.type==="loan"?loanModal(r,a):r.type==="repayment"?(confirm("Take "+money(r.amount||0)+" from "+a.name+"'s balance as a loan repayment?")&&repay(a,r.amount||0,r)):resolve(r,"approved")),btn("Decline","danger",()=>resolve(r,"declined")));i.append(w)}
+    if(r.status==="pending"){const w=h("div","row");w.append(btn("Approve",null,()=>r.type==="loan"?loanModal(r,a):r.type==="transfer"?transferModal(r,a):r.type==="repayment"?(confirm("Take "+money(r.amount||0)+" from "+a.name+"'s balance as a loan repayment?")&&repay(a,r.amount||0,r)):resolve(r,"approved")),btn("Decline","danger",()=>resolve(r,"declined")));i.append(w)}
     box.append(i);
   });
   p.append(box);
